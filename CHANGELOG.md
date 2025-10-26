@@ -14,7 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Certificate management
 - Cron job management
 
-## [0.2.0] - 2025-10-27 (Upcoming)
+## [0.2.0] - 2025-10-26
 
 ### Fixed
 - **Data Sources Now Functional** 🎉

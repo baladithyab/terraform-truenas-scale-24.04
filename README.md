@@ -69,8 +69,8 @@ Then in your Terraform configuration:
 terraform {
   required_providers {
     truenas = {
-      source  = "registry.terraform.io/YOUR_GITHUB_USERNAME/truenas"
-      version = "~> 1.0"
+      source  = "registry.terraform.io/baladithyab/truenas"
+      version = "~> 0.2.0"
     }
   }
 }
@@ -128,8 +128,8 @@ To use a specific version or commit:
 terraform {
   required_providers {
     truenas = {
-      source  = "github.com/YOUR_USERNAME/terraform-provider-truenas"
-      version = "1.0.0"  # or use a git tag
+      source  = "registry.terraform.io/baladithyab/truenas"
+      version = "~> 0.2.0"
     }
   }
 }
