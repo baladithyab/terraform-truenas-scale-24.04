@@ -1,0 +1,6 @@
+# Copy this file to terraform.tfvars and fill in your values
+
+truenas_api_key = "your-truenas-api-key-here"
+alice_password  = "SecurePassword123!"
+bob_password    = "AnotherSecurePassword456!"
+
