@@ -14,6 +14,7 @@ This is a Terraform provider for managing TrueNAS Scale 24.04 resources using th
   - Users & Groups
   - Virtual Machines
   - iSCSI (Targets, Extents, Portals)
+  - Network (Interfaces, VLANs, Bridges, LAGs, Static Routes)
 - **Data Sources**:
   - Dataset information
   - Pool information

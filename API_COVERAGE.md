@@ -8,7 +8,7 @@ The TrueNAS Scale 24.04 API contains **148,765 lines** of OpenAPI specification 
 
 ## Implementation Status
 
-### ✅ Implemented (9 resources, 2 data sources)
+### ✅ Implemented (11 resources, 2 data sources)
 
 #### Resources
 - `truenas_dataset` - ZFS dataset management
@@ -20,6 +20,8 @@ The TrueNAS Scale 24.04 API contains **148,765 lines** of OpenAPI specification 
 - `truenas_iscsi_target` - iSCSI target management
 - `truenas_iscsi_extent` - iSCSI extent (storage) management
 - `truenas_iscsi_portal` - iSCSI portal (network listener) management
+- `truenas_interface` - Network interface management
+- `truenas_static_route` - Static route management
 
 #### Data Sources
 - `truenas_dataset` - Query dataset information
@@ -80,20 +82,17 @@ The TrueNAS Scale 24.04 API contains **148,765 lines** of OpenAPI specification 
 - `truenas_catalog`
 
 #### Network Configuration (21 endpoints)
-- `/interface` - Network interfaces
-- `/interface/bridge_members_choices` - Bridge configuration
-- `/interface/vlan_setup` - VLAN setup
-- `/interface/lag_setup` - Link aggregation
-- `/staticroute` - Static routes
-- `/network/configuration` - Network settings
+- `/interface` - Network interfaces ✅ IMPLEMENTED
+- `/interface/bridge_members_choices` - Bridge configuration (part of interface)
+- `/interface/vlan_setup` - VLAN setup (part of interface)
+- `/interface/lag_setup` - Link aggregation (part of interface)
+- `/staticroute` - Static routes ✅ IMPLEMENTED
+- `/network/configuration` - Network settings 🔜 PLANNED
 
 **Terraform Resources:**
-- `truenas_interface`
-- `truenas_vlan`
-- `truenas_bridge`
-- `truenas_lagg`
-- `truenas_static_route`
-- `truenas_network_config`
+- `truenas_interface` ✅ IMPLEMENTED (supports PHYSICAL, VLAN, BRIDGE, LINK_AGGREGATION)
+- `truenas_static_route` ✅ IMPLEMENTED
+- `truenas_network_config` 🔜 PLANNED
 
 #### Snapshots & Replication (12+ endpoints)
 - `/zfs/snapshot` - ZFS snapshots
