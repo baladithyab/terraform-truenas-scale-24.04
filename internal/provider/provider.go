@@ -125,6 +125,7 @@ func (p *TruenasProvider) Resources(ctx context.Context) []func() resource.Resou
 		NewSMBShareResource,
 		NewUserResource,
 		NewGroupResource,
+		NewVMResource,
 	}
 }
 

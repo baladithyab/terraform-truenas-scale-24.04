@@ -36,29 +36,91 @@ go build -o terraform-provider-truenas
 
 ## Installation
 
-### Local Development
+### Using from GitHub (Recommended)
 
-For local development, you can use the provider by placing it in your Terraform plugins directory:
+You can use the provider directly from GitHub. First, you need to configure Terraform to use GitHub as a provider source.
 
-```bash
-# Build the provider
-go build -o terraform-provider-truenas
+Create or update `~/.terraformrc`:
 
-# Create the plugins directory
-mkdir -p ~/.terraform.d/plugins/terraform-providers/truenas/1.0.0/linux_amd64/
-
-# Copy the provider binary
-cp terraform-provider-truenas ~/.terraform.d/plugins/terraform-providers/truenas/1.0.0/linux_amd64/
+```hcl
+provider_installation {
+  filesystem_mirror {
+    path    = "/home/YOUR_USER/.terraform.d/plugins"
+    include = ["registry.terraform.io/*/*"]
+  }
+  direct {
+    exclude = ["registry.terraform.io/*/*"]
+  }
+}
 ```
 
-Then configure Terraform to use the local provider:
+Then in your Terraform configuration:
 
 ```hcl
 terraform {
   required_providers {
     truenas = {
-      source  = "terraform-providers/truenas"
-      version = "1.0.0"
+      source  = "registry.terraform.io/YOUR_GITHUB_USERNAME/truenas"
+      version = "~> 1.0"
+    }
+  }
+}
+
+provider "truenas" {
+  base_url = "http://10.0.0.213:81"
+  api_key  = var.truenas_api_key
+}
+```
+
+Build and install the provider:
+
+```bash
+git clone https://github.com/YOUR_GITHUB_USERNAME/terraform-provider-truenas.git
+cd terraform-provider-truenas
+make install
+```
+
+Then run:
+
+```bash
+terraform init
+terraform plan
+```
+
+### Building from Source
+
+If you want to build the provider yourself:
+
+```bash
+# Clone the repository
+git clone https://github.com/YOUR_USERNAME/terraform-provider-truenas.git
+cd terraform-provider-truenas
+
+# Build the provider
+go build -o terraform-provider-truenas
+
+# Install locally
+mkdir -p ~/.terraform.d/plugins/registry.terraform.io/YOUR_USERNAME/truenas/1.0.0/linux_amd64/
+cp terraform-provider-truenas ~/.terraform.d/plugins/registry.terraform.io/YOUR_USERNAME/truenas/1.0.0/linux_amd64/
+```
+
+Or use the Makefile:
+
+```bash
+make build
+make install
+```
+
+### Using a Specific Version
+
+To use a specific version or commit:
+
+```hcl
+terraform {
+  required_providers {
+    truenas = {
+      source  = "github.com/YOUR_USERNAME/terraform-provider-truenas"
+      version = "1.0.0"  # or use a git tag
     }
   }
 }
@@ -242,12 +304,92 @@ For issues and questions:
 
 ## Roadmap
 
-Future enhancements may include:
-- Additional resources (iSCSI, VMs, Apps, etc.)
-- More comprehensive data sources
+The TrueNAS Scale 24.04 API has 148,000+ lines of OpenAPI specification with hundreds of endpoints. Here are the planned additions:
+
+### High Priority Resources
+
+- **Virtual Machines** (`truenas_vm`)
+  - Create and manage VMs
+  - Configure CPU, memory, storage
+  - Manage VM devices (NICs, disks, USB, PCI passthrough)
+  - VM lifecycle (start, stop, restart, suspend)
+
+- **iSCSI**
+  - `truenas_iscsi_target` - iSCSI targets
+  - `truenas_iscsi_extent` - Storage extents
+  - `truenas_iscsi_portal` - Network portals
+  - `truenas_iscsi_initiator` - Initiator groups
+  - `truenas_iscsi_auth` - Authentication
+
+- **Kubernetes/Apps**
+  - `truenas_kubernetes_config` - K8s cluster configuration
+  - `truenas_chart_release` - Application deployments
+  - Kubernetes backup/restore
+
+- **Network Configuration**
+  - `truenas_interface` - Network interfaces
+  - `truenas_static_route` - Static routes
+  - `truenas_vlan` - VLAN configuration
+  - `truenas_bridge` - Network bridges
+  - `truenas_lagg` - Link aggregation
+
+- **Snapshots & Replication**
+  - `truenas_snapshot` - ZFS snapshots
+  - `truenas_replication_task` - Replication tasks
+  - `truenas_periodic_snapshot_task` - Snapshot schedules
+
+- **Cloud Sync**
+  - `truenas_cloudsync_credentials` - Cloud credentials
+  - `truenas_cloudsync_task` - Sync tasks
+
+- **System Services**
+  - `truenas_service` - Service management (start/stop/enable)
+  - `truenas_cronjob` - Cron jobs
+  - `truenas_init_shutdown_script` - Init/shutdown scripts
+
+- **Certificates & Security**
+  - `truenas_certificate` - SSL certificates
+  - `truenas_certificate_authority` - Certificate authorities
+  - `truenas_acme_dns_authenticator` - ACME DNS authenticators
+
+- **Storage**
+  - `truenas_pool` - ZFS pool creation/management
+  - `truenas_disk` - Disk management
+  - `truenas_zvol` - ZFS volumes
+
+### Medium Priority
+
+- **Directory Services**
+  - Active Directory integration
+  - LDAP configuration
+  - Kerberos settings
+
+- **Monitoring & Alerts**
+  - Alert services
+  - Alert policies
+  - Reporting configuration
+
+- **Backup**
+  - Cloud backup tasks
+  - Rsync tasks
+
+### Lower Priority
+
+- VMware integration
+- Boot environments
+- System dataset configuration
+- Tunable parameters
+- UPS configuration
+
+### Infrastructure Improvements
+
+- Comprehensive acceptance tests
 - Enhanced error handling and validation
-- Automated testing suite
-- Support for more TrueNAS features
+- Retry logic for transient failures
+- Pagination support for large datasets
+- Bulk operations optimization
+- Better state management
+- Terraform Cloud/Enterprise support
 
 ## Notes
 
