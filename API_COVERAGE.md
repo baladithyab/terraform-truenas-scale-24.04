@@ -8,14 +8,18 @@ The TrueNAS Scale 24.04 API contains **148,765 lines** of OpenAPI specification 
 
 ## Implementation Status
 
-### ✅ Implemented (5 resources, 2 data sources)
+### ✅ Implemented (9 resources, 2 data sources)
 
 #### Resources
 - `truenas_dataset` - ZFS dataset management
-- `truenas_nfs_share` - NFS share management  
+- `truenas_nfs_share` - NFS share management
 - `truenas_smb_share` - SMB/CIFS share management
 - `truenas_user` - User account management
 - `truenas_group` - Group management
+- `truenas_vm` - Virtual machine management
+- `truenas_iscsi_target` - iSCSI target management
+- `truenas_iscsi_extent` - iSCSI extent (storage) management
+- `truenas_iscsi_portal` - iSCSI portal (network listener) management
 
 #### Data Sources
 - `truenas_dataset` - Query dataset information
@@ -43,21 +47,21 @@ The TrueNAS Scale 24.04 API contains **148,765 lines** of OpenAPI specification 
 - `truenas_vm_device` - VM devices (disk, NIC, USB, PCI)
 
 #### iSCSI (32 endpoints)
-- `/iscsi/target` - iSCSI targets
-- `/iscsi/extent` - Storage extents
-- `/iscsi/portal` - Network portals
-- `/iscsi/initiator` - Initiator groups
-- `/iscsi/auth` - Authentication
-- `/iscsi/targetextent` - Target-extent associations
-- `/iscsi/global` - Global iSCSI configuration
+- `/iscsi/target` - iSCSI targets ✅ IMPLEMENTED
+- `/iscsi/extent` - Storage extents ✅ IMPLEMENTED
+- `/iscsi/portal` - Network portals ✅ IMPLEMENTED
+- `/iscsi/initiator` - Initiator groups 🔜 PLANNED
+- `/iscsi/auth` - Authentication 🔜 PLANNED
+- `/iscsi/targetextent` - Target-extent associations 🔜 PLANNED
+- `/iscsi/global` - Global iSCSI configuration 🔜 PLANNED
 
 **Terraform Resources:**
-- `truenas_iscsi_target`
-- `truenas_iscsi_extent`
-- `truenas_iscsi_portal`
-- `truenas_iscsi_initiator`
-- `truenas_iscsi_auth`
-- `truenas_iscsi_targetextent`
+- `truenas_iscsi_target` ✅ IMPLEMENTED
+- `truenas_iscsi_extent` ✅ IMPLEMENTED
+- `truenas_iscsi_portal` ✅ IMPLEMENTED
+- `truenas_iscsi_initiator` 🔜 PLANNED
+- `truenas_iscsi_auth` 🔜 PLANNED
+- `truenas_iscsi_targetextent` 🔜 PLANNED
 
 #### Kubernetes/Apps (10+ endpoints)
 - `/kubernetes` - K8s cluster management
