@@ -8,7 +8,7 @@ The TrueNAS Scale 24.04 API contains **148,765 lines** of OpenAPI specification 
 
 ## Implementation Status
 
-### ✅ Implemented (11 resources, 2 data sources)
+### ✅ Implemented (14 resources, 2 data sources)
 
 #### Resources
 - `truenas_dataset` - ZFS dataset management
@@ -22,6 +22,9 @@ The TrueNAS Scale 24.04 API contains **148,765 lines** of OpenAPI specification 
 - `truenas_iscsi_portal` - iSCSI portal (network listener) management
 - `truenas_interface` - Network interface management
 - `truenas_static_route` - Static route management
+- `truenas_chart_release` - Kubernetes application deployment
+- `truenas_snapshot` - ZFS snapshot management
+- `truenas_periodic_snapshot_task` - Automated snapshot scheduling
 
 #### Data Sources
 - `truenas_dataset` - Query dataset information
@@ -66,20 +69,20 @@ The TrueNAS Scale 24.04 API contains **148,765 lines** of OpenAPI specification 
 - `truenas_iscsi_targetextent` 🔜 PLANNED
 
 #### Kubernetes/Apps (10+ endpoints)
-- `/kubernetes` - K8s cluster management
-- `/kubernetes/status` - Cluster status
-- `/kubernetes/backup_chart_releases` - Backup apps
-- `/kubernetes/restore_backup` - Restore apps
-- `/chart/release` - Application management
-- `/chart/release/upgrade` - Upgrade apps
-- `/chart/release/rollback` - Rollback apps
-- `/chart/release/scale` - Scale apps
-- `/catalog` - App catalogs
+- `/kubernetes` - K8s cluster management 🔜 PLANNED
+- `/kubernetes/status` - Cluster status 🔜 PLANNED
+- `/kubernetes/backup_chart_releases` - Backup apps 🔜 PLANNED
+- `/kubernetes/restore_backup` - Restore apps 🔜 PLANNED
+- `/chart/release` - Application management ✅ IMPLEMENTED
+- `/chart/release/upgrade` - Upgrade apps (part of chart_release)
+- `/chart/release/rollback` - Rollback apps (part of chart_release)
+- `/chart/release/scale` - Scale apps (part of chart_release)
+- `/catalog` - App catalogs 🔜 PLANNED
 
 **Terraform Resources:**
-- `truenas_kubernetes_config`
-- `truenas_chart_release`
-- `truenas_catalog`
+- `truenas_kubernetes_config` 🔜 PLANNED
+- `truenas_chart_release` ✅ IMPLEMENTED
+- `truenas_catalog` 🔜 PLANNED
 
 #### Network Configuration (21 endpoints)
 - `/interface` - Network interfaces ✅ IMPLEMENTED
@@ -95,15 +98,15 @@ The TrueNAS Scale 24.04 API contains **148,765 lines** of OpenAPI specification 
 - `truenas_network_config` 🔜 PLANNED
 
 #### Snapshots & Replication (12+ endpoints)
-- `/zfs/snapshot` - ZFS snapshots
-- `/replication` - Replication tasks
-- `/pool/dataset/destroy_snapshots` - Destroy snapshots
-- `/pool/snapshottask` - Periodic snapshot tasks
+- `/zfs/snapshot` - ZFS snapshots ✅ IMPLEMENTED
+- `/replication` - Replication tasks 🔜 PLANNED
+- `/pool/dataset/destroy_snapshots` - Destroy snapshots (part of snapshot)
+- `/pool/snapshottask` - Periodic snapshot tasks ✅ IMPLEMENTED
 
 **Terraform Resources:**
-- `truenas_snapshot`
-- `truenas_replication_task`
-- `truenas_periodic_snapshot_task`
+- `truenas_snapshot` ✅ IMPLEMENTED
+- `truenas_replication_task` 🔜 PLANNED
+- `truenas_periodic_snapshot_task` ✅ IMPLEMENTED
 
 #### Cloud Sync (15 endpoints)
 - `/cloudsync` - Cloud sync tasks

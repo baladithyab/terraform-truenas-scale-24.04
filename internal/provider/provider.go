@@ -131,6 +131,9 @@ func (p *TruenasProvider) Resources(ctx context.Context) []func() resource.Resou
 		NewISCSIPortalResource,
 		NewStaticRouteResource,
 		NewInterfaceResource,
+		NewChartReleaseResource,
+		NewSnapshotResource,
+		NewPeriodicSnapshotTaskResource,
 	}
 }
 

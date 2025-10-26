@@ -8,13 +8,15 @@ This is a Terraform provider for managing TrueNAS Scale 24.04 resources using th
 - **Resource Management**: Create, read, update, and delete TrueNAS resources
 - **Import Support**: Import existing TrueNAS resources into Terraform state
 - **Comprehensive Resources**:
-  - ZFS Datasets
+  - ZFS Datasets & Snapshots
   - NFS Shares
   - SMB/CIFS Shares
   - Users & Groups
   - Virtual Machines
   - iSCSI (Targets, Extents, Portals)
   - Network (Interfaces, VLANs, Bridges, LAGs, Static Routes)
+  - Kubernetes Apps (Chart Releases)
+  - Automated Snapshot Tasks
 - **Data Sources**:
   - Dataset information
   - Pool information

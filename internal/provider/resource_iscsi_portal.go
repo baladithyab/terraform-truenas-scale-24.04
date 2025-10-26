@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -290,7 +291,7 @@ func (r *ISCSIPortalResource) readISCSIPortal(ctx context.Context, data *ISCSIPo
 			}
 		}
 		list, _ := types.ListValueFrom(ctx, types.ObjectType{
-			AttrTypes: map[string]types.Type{
+			AttrTypes: map[string]attr.Type{
 				"ip":   types.StringType,
 				"port": types.Int64Type,
 			},
