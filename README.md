@@ -15,11 +15,16 @@ This is a Terraform provider for managing TrueNAS Scale 24.04 resources using th
   - Virtual Machines
   - iSCSI (Targets, Extents, Portals)
   - Network (Interfaces, VLANs, Bridges, LAGs, Static Routes)
-  - Kubernetes Apps (Chart Releases)
+  - Kubernetes Apps (Chart Releases) with **Migration Support**
   - Automated Snapshot Tasks
 - **Data Sources**:
   - Dataset information
   - Pool information
+- **Migration Capabilities**:
+  - Export Kubernetes apps to external K8s clusters
+  - Backup and restore with PVCs
+  - Automated migration scripts
+  - See [KUBERNETES_MIGRATION.md](KUBERNETES_MIGRATION.md)
 
 ## Requirements
 
