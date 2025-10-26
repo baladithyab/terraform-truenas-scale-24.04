@@ -6,6 +6,17 @@ This document tracks the implementation status of TrueNAS Scale 24.04 REST API e
 
 The TrueNAS Scale 24.04 API contains **148,765 lines** of OpenAPI specification with hundreds of endpoints across 80+ categories.
 
+**Current Coverage:** 14 resources, 2 data sources (~2.2% of 643 total endpoints)
+
+### Quick Stats
+
+- ✅ **Fully Implemented Categories**: Sharing (NFS, SMB), Users, Groups, Network (Interface, Routes), Snapshots
+- 🟡 **Partially Implemented**: Storage (datasets, snapshots), VMs, iSCSI, Kubernetes (apps)
+- 🔜 **High Priority Planned**: Replication, Cloud Sync, Services, Certificates
+- 📊 **Total Resources**: 14 (started with 5)
+- 🎯 **Import Support**: All 14 resources support import
+- 📚 **Documentation**: 10 comprehensive guides including migration workflows
+
 ## Implementation Status
 
 ### ✅ Implemented (14 resources, 2 data sources)
@@ -30,26 +41,48 @@ The TrueNAS Scale 24.04 API contains **148,765 lines** of OpenAPI specification 
 - `truenas_dataset` - Query dataset information
 - `truenas_pool` - Query pool information
 
+### 🎯 Special Features
+
+#### Kubernetes Migration Support ✨ NEW
+The provider includes comprehensive Kubernetes app migration capabilities:
+
+- **Export to External K8s**: Migrate TrueNAS apps to EKS, GKE, AKS, or any Kubernetes cluster
+- **PVC Data Migration**: Automated tools for migrating persistent volume data
+- **Backup & Restore**: Snapshot-based backup with full data preservation
+- **Migration Automation**: `export-apps.sh` script generates migration manifests and scripts
+- **Complete Examples**: Production-ready examples with Plex, Nextcloud, Sonarr, Radarr, Home Assistant
+
+**Documentation:**
+- [KUBERNETES_MIGRATION.md](KUBERNETES_MIGRATION.md) - Complete migration guide (5 workflows)
+- [examples/complete-kubernetes/](examples/complete-kubernetes/) - Production examples
+- [IMPORT_GUIDE.md](IMPORT_GUIDE.md) - Import guide for all resources
+
+**Use Cases:**
+- Migrate from TrueNAS K8s to cloud Kubernetes
+- Backup apps with data before major changes
+- Replicate apps across multiple TrueNAS instances
+- Version control all app configurations
+
 ### 🚧 Planned - High Priority
 
 #### Virtual Machines (46 endpoints)
-- `/vm` - VM CRUD operations
-- `/vm/device` - VM device management
-- `/vm/id/{id}/start` - Start VM
-- `/vm/id/{id}/stop` - Stop VM
-- `/vm/id/{id}/restart` - Restart VM
-- `/vm/id/{id}/suspend` - Suspend VM
-- `/vm/id/{id}/resume` - Resume VM
-- `/vm/id/{id}/clone` - Clone VM
-- `/vm/get_console` - Get console access
-- `/vm/device/disk_choices` - Available disks
-- `/vm/device/nic_attach_choices` - Network options
-- `/vm/device/passthrough_device` - PCI passthrough
-- `/vm/device/usb_passthrough_device` - USB passthrough
+- `/vm` - VM CRUD operations ✅ IMPLEMENTED
+- `/vm/device` - VM device management 🔜 PLANNED
+- `/vm/id/{id}/start` - Start VM 🔜 PLANNED
+- `/vm/id/{id}/stop` - Stop VM 🔜 PLANNED
+- `/vm/id/{id}/restart` - Restart VM 🔜 PLANNED
+- `/vm/id/{id}/suspend` - Suspend VM 🔜 PLANNED
+- `/vm/id/{id}/resume` - Resume VM 🔜 PLANNED
+- `/vm/id/{id}/clone` - Clone VM 🔜 PLANNED
+- `/vm/get_console` - Get console access 🔜 PLANNED
+- `/vm/device/disk_choices` - Available disks 🔜 PLANNED
+- `/vm/device/nic_attach_choices` - Network options 🔜 PLANNED
+- `/vm/device/passthrough_device` - PCI passthrough 🔜 PLANNED
+- `/vm/device/usb_passthrough_device` - USB passthrough 🔜 PLANNED
 
 **Terraform Resources:**
-- `truenas_vm` - Virtual machine
-- `truenas_vm_device` - VM devices (disk, NIC, USB, PCI)
+- `truenas_vm` ✅ IMPLEMENTED
+- `truenas_vm_device` 🔜 PLANNED
 
 #### iSCSI (32 endpoints)
 - `/iscsi/target` - iSCSI targets ✅ IMPLEMENTED
@@ -109,106 +142,123 @@ The TrueNAS Scale 24.04 API contains **148,765 lines** of OpenAPI specification 
 - `truenas_periodic_snapshot_task` ✅ IMPLEMENTED
 
 #### Cloud Sync (15 endpoints)
-- `/cloudsync` - Cloud sync tasks
-- `/cloudsync/credentials` - Cloud credentials
-- `/cloudsync/create_bucket` - Create cloud bucket
-- `/cloudsync/id/{id}/sync` - Run sync
-- `/cloudsync/id/{id}/abort` - Abort sync
+- `/cloudsync` - Cloud sync tasks 🔜 PLANNED
+- `/cloudsync/credentials` - Cloud credentials 🔜 PLANNED
+- `/cloudsync/create_bucket` - Create cloud bucket 🔜 PLANNED
+- `/cloudsync/id/{id}/sync` - Run sync 🔜 PLANNED
+- `/cloudsync/id/{id}/abort` - Abort sync 🔜 PLANNED
 
 **Terraform Resources:**
-- `truenas_cloudsync_credentials`
-- `truenas_cloudsync_task`
+- `truenas_cloudsync_credentials` 🔜 PLANNED
+- `truenas_cloudsync_task` 🔜 PLANNED
 
 #### Services (10 endpoints)
-- `/service` - Service management
-- `/service/start` - Start service
-- `/service/stop` - Stop service
-- `/service/restart` - Restart service
-- `/service/reload` - Reload service
+- `/service` - Service management 🔜 PLANNED
+- `/service/start` - Start service 🔜 PLANNED
+- `/service/stop` - Stop service 🔜 PLANNED
+- `/service/restart` - Restart service 🔜 PLANNED
+- `/service/reload` - Reload service 🔜 PLANNED
 
 **Terraform Resources:**
-- `truenas_service`
+- `truenas_service` 🔜 PLANNED
 
 #### Cron Jobs (4 endpoints)
-- `/cronjob` - Cron job management
-- `/cronjob/run` - Execute cron job
+- `/cronjob` - Cron job management 🔜 PLANNED
+- `/cronjob/run` - Execute cron job 🔜 PLANNED
 
 **Terraform Resources:**
-- `truenas_cronjob`
+- `truenas_cronjob` 🔜 PLANNED
 
 #### Certificates (20+ endpoints)
-- `/certificate` - SSL certificates
-- `/certificateauthority` - Certificate authorities
-- `/acme/dns/authenticator` - ACME DNS authenticators
+- `/certificate` - SSL certificates 🔜 PLANNED
+- `/certificateauthority` - Certificate authorities 🔜 PLANNED
+- `/acme/dns/authenticator` - ACME DNS authenticators 🔜 PLANNED
 
 **Terraform Resources:**
-- `truenas_certificate`
-- `truenas_certificate_authority`
-- `truenas_acme_dns_authenticator`
+- `truenas_certificate` 🔜 PLANNED
+- `truenas_certificate_authority` 🔜 PLANNED
+- `truenas_acme_dns_authenticator` 🔜 PLANNED
 
 ### 🔜 Planned - Medium Priority
 
 #### Storage Pool Management (67 endpoints)
-- `/pool` - Pool CRUD
-- `/pool/attach` - Attach vdev
-- `/pool/detach` - Detach vdev
-- `/pool/expand` - Expand pool
-- `/pool/scrub` - Scrub pool
+- `/pool` - Pool CRUD 🔜 PLANNED
+- `/pool/attach` - Attach vdev 🔜 PLANNED
+- `/pool/detach` - Detach vdev 🔜 PLANNED
+- `/pool/expand` - Expand pool 🔜 PLANNED
+- `/pool/scrub` - Scrub pool 🔜 PLANNED
 
 **Terraform Resources:**
-- `truenas_pool`
-- `truenas_pool_scrub_task`
+- `truenas_pool` 🔜 PLANNED
+- `truenas_pool_scrub_task` 🔜 PLANNED
 
 #### Directory Services
-- `/activedirectory` - Active Directory
-- `/ldap` - LDAP configuration
-- `/kerberos` - Kerberos settings
-- `/idmap` - ID mapping
+- `/activedirectory` - Active Directory 🔜 PLANNED
+- `/ldap` - LDAP configuration 🔜 PLANNED
+- `/kerberos` - Kerberos settings 🔜 PLANNED
+- `/idmap` - ID mapping 🔜 PLANNED
 
 **Terraform Resources:**
-- `truenas_activedirectory`
-- `truenas_ldap`
-- `truenas_kerberos_realm`
-- `truenas_kerberos_keytab`
+- `truenas_activedirectory` 🔜 PLANNED
+- `truenas_ldap` 🔜 PLANNED
+- `truenas_kerberos_realm` 🔜 PLANNED
+- `truenas_kerberos_keytab` 🔜 PLANNED
 
 #### Alerts & Monitoring
-- `/alert` - Alert management
-- `/alertservice` - Alert services
-- `/alertclasses` - Alert classes
-- `/reporting` - Reporting configuration
+- `/alert` - Alert management 🔜 PLANNED
+- `/alertservice` - Alert services 🔜 PLANNED
+- `/alertclasses` - Alert classes 🔜 PLANNED
+- `/reporting` - Reporting configuration 🔜 PLANNED
 
 **Terraform Resources:**
-- `truenas_alert_service`
-- `truenas_alert_policy`
+- `truenas_alert_service` 🔜 PLANNED
+- `truenas_alert_policy` 🔜 PLANNED
 
 #### Backup Tasks
-- `/cloud_backup` - Cloud backup
-- `/rsynctask` - Rsync tasks
+- `/cloud_backup` - Cloud backup 🔜 PLANNED
+- `/rsynctask` - Rsync tasks 🔜 PLANNED
 
 **Terraform Resources:**
-- `truenas_cloud_backup`
-- `truenas_rsync_task`
+- `truenas_cloud_backup` 🔜 PLANNED
+- `truenas_rsync_task` 🔜 PLANNED
 
 ### 📋 Planned - Lower Priority
 
 #### System Configuration
-- `/system/general` - General settings
-- `/system/advanced` - Advanced settings
-- `/system/ntpserver` - NTP servers
-- `/tunable` - System tunables
-- `/bootenv` - Boot environments
+- `/system/general` - General settings 🔜 PLANNED
+- `/system/advanced` - Advanced settings 🔜 PLANNED
+- `/system/ntpserver` - NTP servers 🔜 PLANNED
+- `/tunable` - System tunables 🔜 PLANNED
+- `/bootenv` - Boot environments 🔜 PLANNED
+
+**Terraform Resources:**
+- `truenas_system_general` 🔜 PLANNED
+- `truenas_system_advanced` 🔜 PLANNED
+- `truenas_ntp_server` 🔜 PLANNED
+- `truenas_tunable` 🔜 PLANNED
+- `truenas_boot_environment` 🔜 PLANNED
 
 #### Hardware
-- `/disk` - Disk management
-- `/smart` - SMART monitoring
-- `/enclosure` - Enclosure management
+- `/disk` - Disk management 🔜 PLANNED
+- `/smart` - SMART monitoring 🔜 PLANNED
+- `/enclosure` - Enclosure management 🔜 PLANNED
+
+**Terraform Resources:**
+- `truenas_disk` 🔜 PLANNED
+- `truenas_smart_test` 🔜 PLANNED
 
 #### Other Services
-- `/ftp` - FTP service
-- `/ssh` - SSH service
-- `/snmp` - SNMP service
-- `/ups` - UPS configuration
-- `/vmware` - VMware integration
+- `/ftp` - FTP service 🔜 PLANNED
+- `/ssh` - SSH service 🔜 PLANNED
+- `/snmp` - SNMP service 🔜 PLANNED
+- `/ups` - UPS configuration 🔜 PLANNED
+- `/vmware` - VMware integration 🔜 PLANNED
+
+**Terraform Resources:**
+- `truenas_ftp_config` 🔜 PLANNED
+- `truenas_ssh_config` 🔜 PLANNED
+- `truenas_snmp_config` 🔜 PLANNED
+- `truenas_ups_config` 🔜 PLANNED
 
 ## API Categories Summary
 
@@ -216,20 +266,21 @@ Total API categories: **80+**
 
 | Category | Endpoints | Status |
 |----------|-----------|--------|
-| pool | 67 | Partial (dataset only) |
-| vm | 46 | Planned |
-| iscsi | 32 | Planned |
-| interface | 21 | Planned |
+| pool | 67 | Partial (dataset ✅, snapshots ✅) |
+| vm | 46 | Partial (vm ✅, devices planned) |
+| iscsi | 32 | Partial (target ✅, extent ✅, portal ✅) |
+| interface | 21 | ✅ Implemented |
 | certificate | 20+ | Planned |
 | cloudsync | 15 | Planned |
 | replication | 12 | Planned |
-| kubernetes | 10 | Planned |
+| kubernetes | 10 | Partial (chart_release ✅, cluster planned) |
 | service | 10 | Planned |
-| sharing | 9 | ✅ Implemented |
+| sharing | 9 | ✅ Implemented (NFS ✅, SMB ✅) |
 | user | 8 | ✅ Implemented |
 | group | 6 | ✅ Implemented |
 | cronjob | 4 | Planned |
-| network | 3 | Planned |
+| network | 3 | ✅ Implemented (interface ✅, static_route ✅) |
+| snapshot | 4 | ✅ Implemented (snapshot ✅, periodic_task ✅) |
 
 ## Contributing
 
