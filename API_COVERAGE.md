@@ -10,36 +10,121 @@ The TrueNAS Scale 24.04 API contains **148,765 lines** of OpenAPI specification 
 
 ### Quick Stats
 
-- ✅ **Fully Implemented Categories**: Sharing (NFS, SMB), Users, Groups, Network (Interface, Routes), Snapshots
-- 🟡 **Partially Implemented**: Storage (datasets, snapshots), VMs, iSCSI, Kubernetes (apps)
-- 🔜 **High Priority Planned**: Replication, Cloud Sync, Services, Certificates
-- 📊 **Total Resources**: 14 (started with 5)
-- 🎯 **Import Support**: All 14 resources support import
-- 📚 **Documentation**: 10 comprehensive guides including migration workflows
+**Implementation Summary:**
+- ✅ **Fully Implemented Categories (6)**:
+  - Storage: Datasets ✅, Snapshots ✅, Periodic Snapshot Tasks ✅
+  - Sharing: NFS ✅, SMB ✅
+  - Users & Groups: Users ✅, Groups ✅
+  - Network: Interfaces ✅, Static Routes ✅
+
+- 🟡 **Partially Implemented Categories (3)**:
+  - Virtual Machines: Basic VM ✅ (devices, lifecycle operations planned)
+  - iSCSI: Target ✅, Extent ✅, Portal ✅ (initiator, auth, associations planned)
+  - Kubernetes: Chart Releases ✅ (cluster config, catalogs planned)
+
+- 🔜 **High Priority Planned (5)**: Replication, Cloud Sync, Services, Certificates, Cron Jobs
+
+**Metrics:**
+- 📊 **Total Resources**: 14 (started with 5, added 9)
+- 🎯 **Import Support**: 100% (all 14 resources)
+- 📚 **Documentation**: 10 comprehensive guides
+- 🚀 **Special Features**: Kubernetes migration to external clusters
+- 📈 **API Coverage**: ~2.2% (14 of 643 endpoints)
 
 ## Implementation Status
 
-### ✅ Implemented (14 resources, 2 data sources)
+### ✅ Fully Implemented (14 resources, 2 data sources)
 
-#### Resources
-- `truenas_dataset` - ZFS dataset management
-- `truenas_nfs_share` - NFS share management
-- `truenas_smb_share` - SMB/CIFS share management
-- `truenas_user` - User account management
-- `truenas_group` - Group management
-- `truenas_vm` - Virtual machine management
-- `truenas_iscsi_target` - iSCSI target management
-- `truenas_iscsi_extent` - iSCSI extent (storage) management
-- `truenas_iscsi_portal` - iSCSI portal (network listener) management
-- `truenas_interface` - Network interface management
-- `truenas_static_route` - Static route management
-- `truenas_chart_release` - Kubernetes application deployment
-- `truenas_snapshot` - ZFS snapshot management
-- `truenas_periodic_snapshot_task` - Automated snapshot scheduling
+All resources include:
+- ✅ Full CRUD operations (Create, Read, Update, Delete)
+- ✅ Import support
+- ✅ Comprehensive examples
+- ✅ Documentation
 
-#### Data Sources
-- `truenas_dataset` - Query dataset information
-- `truenas_pool` - Query pool information
+#### Storage & File Sharing (3 resources)
+1. **`truenas_dataset`** - ZFS dataset management
+   - API: `/pool/dataset`
+   - Features: Compression, quotas, reservations, ZFS properties
+   - Import: By dataset name (e.g., `tank/mydata`)
+
+2. **`truenas_nfs_share`** - NFS share management
+   - API: `/sharing/nfs`
+   - Features: Network ACLs, security, user mapping
+   - Import: By share ID
+
+3. **`truenas_smb_share`** - SMB/CIFS share management
+   - API: `/sharing/smb`
+   - Features: Guest access, recycle bin, shadow copies
+   - Import: By share ID
+
+#### User Management (2 resources)
+4. **`truenas_user`** - User account management
+   - API: `/user`
+   - Features: Passwords, SSH keys, home directories, sudo
+   - Import: By user ID
+
+5. **`truenas_group`** - Group management
+   - API: `/group`
+   - Features: User assignments, sudo, SMB settings
+   - Import: By group ID
+
+#### Virtual Machines (1 resource)
+6. **`truenas_vm`** - Virtual machine management
+   - API: `/vm`
+   - Features: CPU/memory config, bootloader, autostart
+   - Import: By VM name
+
+#### iSCSI (3 resources)
+7. **`truenas_iscsi_target`** - iSCSI target management
+   - API: `/iscsi/target`
+   - Features: IQN-based targets, portal associations
+   - Import: By target ID
+
+8. **`truenas_iscsi_extent`** - iSCSI extent management
+   - API: `/iscsi/extent`
+   - Features: FILE/DISK types, block sizes, read-only
+   - Import: By extent ID
+
+9. **`truenas_iscsi_portal`** - iSCSI portal management
+   - API: `/iscsi/portal`
+   - Features: Listen addresses, CHAP auth
+   - Import: By portal ID
+
+#### Network (2 resources)
+10. **`truenas_interface`** - Network interface management
+    - API: `/interface`
+    - Features: PHYSICAL, VLAN, BRIDGE, LAG types
+    - Import: By interface name
+
+11. **`truenas_static_route`** - Static route management
+    - API: `/staticroute`
+    - Features: CIDR destinations, gateway IPs
+    - Import: By route ID
+
+#### Kubernetes/Apps (1 resource) ✨
+12. **`truenas_chart_release`** - Kubernetes application deployment
+    - API: `/chart/release`
+    - Features: Catalog apps, JSON values, version management
+    - **Special**: Migration support to external K8s clusters
+    - Import: By release name
+
+#### Snapshots (2 resources) ✨
+13. **`truenas_snapshot`** - ZFS snapshot management
+    - API: `/zfs/snapshot`
+    - Features: Recursive snapshots, VMware sync
+    - Import: By `dataset@snapshotname`
+
+14. **`truenas_periodic_snapshot_task`** - Automated snapshot scheduling
+    - API: `/pool/snapshottask`
+    - Features: Cron scheduling, retention policies, exclusions
+    - Import: By task ID
+
+#### Data Sources (2)
+- **`truenas_dataset`** - Query dataset information
+  - API: `/pool/dataset/id/{id}`
+
+- **`truenas_pool`** - Query pool information
+  - API: `/pool/id/{id}`
 
 ### 🎯 Special Features
 
@@ -63,10 +148,13 @@ The provider includes comprehensive Kubernetes app migration capabilities:
 - Replicate apps across multiple TrueNAS instances
 - Version control all app configurations
 
-### 🚧 Planned - High Priority
+### � Partially Implemented - Additional Features Available
 
-#### Virtual Machines (46 endpoints)
+#### Virtual Machines (46 endpoints) - Basic VM ✅, Advanced Features 🔜
+**Implemented:**
 - `/vm` - VM CRUD operations ✅ IMPLEMENTED
+
+**Planned:**
 - `/vm/device` - VM device management 🔜 PLANNED
 - `/vm/id/{id}/start` - Start VM 🔜 PLANNED
 - `/vm/id/{id}/stop` - Stop VM 🔜 PLANNED
@@ -81,13 +169,16 @@ The provider includes comprehensive Kubernetes app migration capabilities:
 - `/vm/device/usb_passthrough_device` - USB passthrough 🔜 PLANNED
 
 **Terraform Resources:**
-- `truenas_vm` ✅ IMPLEMENTED
-- `truenas_vm_device` 🔜 PLANNED
+- `truenas_vm` ✅ IMPLEMENTED (basic VM management)
+- `truenas_vm_device` 🔜 PLANNED (advanced device management)
 
-#### iSCSI (32 endpoints)
+#### iSCSI (32 endpoints) - Core Features ✅, Advanced Features 🔜
+**Implemented:**
 - `/iscsi/target` - iSCSI targets ✅ IMPLEMENTED
 - `/iscsi/extent` - Storage extents ✅ IMPLEMENTED
 - `/iscsi/portal` - Network portals ✅ IMPLEMENTED
+
+**Planned:**
 - `/iscsi/initiator` - Initiator groups 🔜 PLANNED
 - `/iscsi/auth` - Authentication 🔜 PLANNED
 - `/iscsi/targetextent` - Target-extent associations 🔜 PLANNED
@@ -101,45 +192,34 @@ The provider includes comprehensive Kubernetes app migration capabilities:
 - `truenas_iscsi_auth` 🔜 PLANNED
 - `truenas_iscsi_targetextent` 🔜 PLANNED
 
-#### Kubernetes/Apps (10+ endpoints)
+#### Kubernetes/Apps (10+ endpoints) - Apps ✅, Cluster Management 🔜
+**Implemented:**
+- `/chart/release` - Application management ✅ IMPLEMENTED
+- `/chart/release/upgrade` - Upgrade apps ✅ (part of chart_release)
+- `/chart/release/rollback` - Rollback apps ✅ (part of chart_release)
+- `/chart/release/scale` - Scale apps ✅ (part of chart_release)
+
+**Planned:**
 - `/kubernetes` - K8s cluster management 🔜 PLANNED
 - `/kubernetes/status` - Cluster status 🔜 PLANNED
 - `/kubernetes/backup_chart_releases` - Backup apps 🔜 PLANNED
 - `/kubernetes/restore_backup` - Restore apps 🔜 PLANNED
-- `/chart/release` - Application management ✅ IMPLEMENTED
-- `/chart/release/upgrade` - Upgrade apps (part of chart_release)
-- `/chart/release/rollback` - Rollback apps (part of chart_release)
-- `/chart/release/scale` - Scale apps (part of chart_release)
 - `/catalog` - App catalogs 🔜 PLANNED
 
 **Terraform Resources:**
-- `truenas_kubernetes_config` 🔜 PLANNED
-- `truenas_chart_release` ✅ IMPLEMENTED
-- `truenas_catalog` 🔜 PLANNED
+- `truenas_chart_release` ✅ IMPLEMENTED (full app lifecycle)
+- `truenas_kubernetes_config` 🔜 PLANNED (cluster configuration)
+- `truenas_catalog` 🔜 PLANNED (catalog management)
 
-#### Network Configuration (21 endpoints)
-- `/interface` - Network interfaces ✅ IMPLEMENTED
-- `/interface/bridge_members_choices` - Bridge configuration (part of interface)
-- `/interface/vlan_setup` - VLAN setup (part of interface)
-- `/interface/lag_setup` - Link aggregation (part of interface)
-- `/staticroute` - Static routes ✅ IMPLEMENTED
-- `/network/configuration` - Network settings 🔜 PLANNED
+### 🚧 Planned - High Priority
 
-**Terraform Resources:**
-- `truenas_interface` ✅ IMPLEMENTED (supports PHYSICAL, VLAN, BRIDGE, LINK_AGGREGATION)
-- `truenas_static_route` ✅ IMPLEMENTED
-- `truenas_network_config` 🔜 PLANNED
-
-#### Snapshots & Replication (12+ endpoints)
-- `/zfs/snapshot` - ZFS snapshots ✅ IMPLEMENTED
+#### Replication (12+ endpoints)
 - `/replication` - Replication tasks 🔜 PLANNED
-- `/pool/dataset/destroy_snapshots` - Destroy snapshots (part of snapshot)
-- `/pool/snapshottask` - Periodic snapshot tasks ✅ IMPLEMENTED
+- `/replication/id/{id}/run` - Run replication 🔜 PLANNED
+- `/replication/count_eligible_manual_snapshots` - Count snapshots 🔜 PLANNED
 
 **Terraform Resources:**
-- `truenas_snapshot` ✅ IMPLEMENTED
 - `truenas_replication_task` 🔜 PLANNED
-- `truenas_periodic_snapshot_task` ✅ IMPLEMENTED
 
 #### Cloud Sync (15 endpoints)
 - `/cloudsync` - Cloud sync tasks 🔜 PLANNED
@@ -260,27 +340,86 @@ The provider includes comprehensive Kubernetes app migration capabilities:
 - `truenas_snmp_config` 🔜 PLANNED
 - `truenas_ups_config` 🔜 PLANNED
 
+## Implementation Roadmap
+
+### Phase 1: Foundation ✅ COMPLETE
+**Goal**: Core infrastructure management
+- ✅ Datasets (storage)
+- ✅ NFS/SMB shares (file sharing)
+- ✅ Users & Groups (access control)
+- ✅ Basic documentation
+
+### Phase 2: Advanced Infrastructure ✅ COMPLETE
+**Goal**: Virtualization and block storage
+- ✅ Virtual Machines
+- ✅ iSCSI (target, extent, portal)
+- ✅ Network (interfaces, routes)
+- ✅ Complete examples
+
+### Phase 3: Kubernetes & Snapshots ✅ COMPLETE
+**Goal**: Application management and data protection
+- ✅ Kubernetes chart releases
+- ✅ ZFS snapshots
+- ✅ Periodic snapshot tasks
+- ✅ **Migration capabilities** (TrueNAS K8s → External K8s)
+- ✅ Migration automation scripts
+- ✅ Complete documentation (10 guides)
+
+### Phase 4: Data Management 🔜 NEXT
+**Goal**: Replication and cloud integration
+- 🔜 Replication tasks
+- 🔜 Cloud sync tasks
+- 🔜 Cloud credentials
+- 🔜 Rsync tasks
+
+### Phase 5: System Management 🔜 PLANNED
+**Goal**: Services and monitoring
+- 🔜 Service management
+- 🔜 Cron jobs
+- 🔜 Certificates
+- 🔜 Alert services
+
+### Phase 6: Advanced Features 🔜 FUTURE
+**Goal**: Enterprise features
+- 🔜 Active Directory integration
+- 🔜 LDAP configuration
+- 🔜 Advanced VM features (devices, lifecycle)
+- 🔜 Advanced iSCSI (initiators, auth)
+
 ## API Categories Summary
 
 Total API categories: **80+**
+Total endpoints: **643**
+Implemented: **14 resources** (~2.2% coverage)
 
-| Category | Endpoints | Status |
-|----------|-----------|--------|
-| pool | 67 | Partial (dataset ✅, snapshots ✅) |
-| vm | 46 | Partial (vm ✅, devices planned) |
-| iscsi | 32 | Partial (target ✅, extent ✅, portal ✅) |
-| interface | 21 | ✅ Implemented |
-| certificate | 20+ | Planned |
-| cloudsync | 15 | Planned |
-| replication | 12 | Planned |
-| kubernetes | 10 | Partial (chart_release ✅, cluster planned) |
-| service | 10 | Planned |
-| sharing | 9 | ✅ Implemented (NFS ✅, SMB ✅) |
-| user | 8 | ✅ Implemented |
-| group | 6 | ✅ Implemented |
-| cronjob | 4 | Planned |
-| network | 3 | ✅ Implemented (interface ✅, static_route ✅) |
-| snapshot | 4 | ✅ Implemented (snapshot ✅, periodic_task ✅) |
+| Category | Endpoints | Implemented | Status | Priority |
+|----------|-----------|-------------|--------|----------|
+| **sharing** | 9 | 2 | ✅ Complete (NFS ✅, SMB ✅) | ✅ Done |
+| **user** | 8 | 1 | ✅ Complete | ✅ Done |
+| **group** | 6 | 1 | ✅ Complete | ✅ Done |
+| **interface** | 21 | 1 | ✅ Complete | ✅ Done |
+| **network** | 3 | 1 | ✅ Complete (static_route ✅) | ✅ Done |
+| **snapshot** | 4 | 2 | ✅ Complete (snapshot ✅, periodic_task ✅) | ✅ Done |
+| **pool** | 67 | 1 | 🟡 Partial (dataset ✅, snapshots ✅) | Medium |
+| **vm** | 46 | 1 | 🟡 Partial (vm ✅, devices planned) | Medium |
+| **iscsi** | 32 | 3 | 🟡 Partial (target ✅, extent ✅, portal ✅) | Medium |
+| **kubernetes** | 10 | 1 | 🟡 Partial (chart_release ✅, cluster planned) | Medium |
+| **replication** | 12 | 0 | 🔜 Planned | High |
+| **cloudsync** | 15 | 0 | 🔜 Planned | High |
+| **service** | 10 | 0 | 🔜 Planned | High |
+| **certificate** | 20+ | 0 | 🔜 Planned | High |
+| **cronjob** | 4 | 0 | 🔜 Planned | High |
+| **alertservice** | 8 | 0 | 🔜 Planned | Medium |
+| **activedirectory** | 6 | 0 | 🔜 Planned | Medium |
+| **ldap** | 5 | 0 | 🔜 Planned | Medium |
+| **system** | 30+ | 0 | 🔜 Planned | Low |
+| **disk** | 15 | 0 | 🔜 Planned | Low |
+| **Other** | 350+ | 0 | 🔜 Future | Low |
+
+**Legend:**
+- ✅ Complete: All core features implemented
+- 🟡 Partial: Basic features implemented, advanced features planned
+- 🔜 Planned: Not yet implemented
 
 ## Contributing
 
