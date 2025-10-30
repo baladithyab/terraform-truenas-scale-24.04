@@ -14,6 +14,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Certificate management
 - Cron job management
 
+## [0.2.4] - 2025-10-30
+
+### Fixed
+- **Critical Fix**: Provider now correctly omits properties with empty string values
+  - **Root Cause**: v0.2.3 checked `!IsNull()` but still sent empty strings (`""`) to the API
+  - **Impact**: TrueNAS API rejected requests with "Invalid choice: " errors for empty string values
+  - **Solution**: Added empty string check (`&& data.PropertyName.ValueString() != ""`) for all string properties
+  - Properties are now only included in API requests if they have actual non-empty values
+  - Applied to both `Create()` and `Update()` functions
+
+### Technical Details
+- **File**: `internal/provider/resource_dataset.go`
+- **Changes**:
+  - Lines 215-268: Updated Create() to check for empty strings on all string properties
+  - Lines 323-376: Updated Update() to check for empty strings on all string properties
+- **Affected Properties**: comments, compression, sync, deduplication, readonly, atime, exec, recordsize, snapdir
+- **Integer Properties**: No change needed (quota, refquota, reservation, refreservation, copies, volsize)
+
+### Backward Compatibility
+- ✅ No breaking changes
+- ✅ All v0.2.3 configurations will work in v0.2.4
+- ✅ Fixes critical issue that prevented datasets from being created when optional properties had empty values
+
 ## [0.2.3] - 2025-10-30
 
 ### Fixed

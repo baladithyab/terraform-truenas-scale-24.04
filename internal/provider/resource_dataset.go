@@ -213,19 +213,19 @@ func (r *DatasetResource) Create(ctx context.Context, req resource.CreateRequest
 	}
 
 	// Properties valid for BOTH FILESYSTEM and VOLUME
-	if !data.Comments.IsNull() {
+	if !data.Comments.IsNull() && data.Comments.ValueString() != "" {
 		createReq["comments"] = data.Comments.ValueString()
 	}
-	if !data.Compression.IsNull() {
+	if !data.Compression.IsNull() && data.Compression.ValueString() != "" {
 		createReq["compression"] = data.Compression.ValueString()
 	}
-	if !data.Sync.IsNull() {
+	if !data.Sync.IsNull() && data.Sync.ValueString() != "" {
 		createReq["sync"] = data.Sync.ValueString()
 	}
-	if !data.Dedup.IsNull() {
+	if !data.Dedup.IsNull() && data.Dedup.ValueString() != "" {
 		createReq["deduplication"] = data.Dedup.ValueString()
 	}
-	if !data.ReadOnly.IsNull() {
+	if !data.ReadOnly.IsNull() && data.ReadOnly.ValueString() != "" {
 		createReq["readonly"] = data.ReadOnly.ValueString()
 	}
 	if !data.Copies.IsNull() {
@@ -247,13 +247,13 @@ func (r *DatasetResource) Create(ctx context.Context, req resource.CreateRequest
 
 	// FILESYSTEM-specific properties
 	if datasetType == "FILESYSTEM" {
-		if !data.Atime.IsNull() {
+		if !data.Atime.IsNull() && data.Atime.ValueString() != "" {
 			createReq["atime"] = data.Atime.ValueString()
 		}
-		if !data.Exec.IsNull() {
+		if !data.Exec.IsNull() && data.Exec.ValueString() != "" {
 			createReq["exec"] = data.Exec.ValueString()
 		}
-		if !data.RecordSize.IsNull() {
+		if !data.RecordSize.IsNull() && data.RecordSize.ValueString() != "" {
 			createReq["recordsize"] = data.RecordSize.ValueString()
 		}
 		if !data.Quota.IsNull() {
@@ -262,7 +262,7 @@ func (r *DatasetResource) Create(ctx context.Context, req resource.CreateRequest
 		if !data.RefQuota.IsNull() {
 			createReq["refquota"] = data.RefQuota.ValueInt64()
 		}
-		if !data.SnapDir.IsNull() {
+		if !data.SnapDir.IsNull() && data.SnapDir.ValueString() != "" {
 			createReq["snapdir"] = data.SnapDir.ValueString()
 		}
 	}
@@ -321,19 +321,19 @@ func (r *DatasetResource) Update(ctx context.Context, req resource.UpdateRequest
 	updateReq := make(map[string]interface{})
 
 	// Properties valid for BOTH FILESYSTEM and VOLUME
-	if !data.Comments.IsNull() {
+	if !data.Comments.IsNull() && data.Comments.ValueString() != "" {
 		updateReq["comments"] = data.Comments.ValueString()
 	}
-	if !data.Compression.IsNull() {
+	if !data.Compression.IsNull() && data.Compression.ValueString() != "" {
 		updateReq["compression"] = data.Compression.ValueString()
 	}
-	if !data.Sync.IsNull() {
+	if !data.Sync.IsNull() && data.Sync.ValueString() != "" {
 		updateReq["sync"] = data.Sync.ValueString()
 	}
-	if !data.Dedup.IsNull() {
+	if !data.Dedup.IsNull() && data.Dedup.ValueString() != "" {
 		updateReq["deduplication"] = data.Dedup.ValueString()
 	}
-	if !data.ReadOnly.IsNull() {
+	if !data.ReadOnly.IsNull() && data.ReadOnly.ValueString() != "" {
 		updateReq["readonly"] = data.ReadOnly.ValueString()
 	}
 	if !data.Copies.IsNull() {
@@ -355,13 +355,13 @@ func (r *DatasetResource) Update(ctx context.Context, req resource.UpdateRequest
 
 	// FILESYSTEM-specific properties
 	if datasetType == "FILESYSTEM" {
-		if !data.Atime.IsNull() {
+		if !data.Atime.IsNull() && data.Atime.ValueString() != "" {
 			updateReq["atime"] = data.Atime.ValueString()
 		}
-		if !data.Exec.IsNull() {
+		if !data.Exec.IsNull() && data.Exec.ValueString() != "" {
 			updateReq["exec"] = data.Exec.ValueString()
 		}
-		if !data.RecordSize.IsNull() {
+		if !data.RecordSize.IsNull() && data.RecordSize.ValueString() != "" {
 			updateReq["recordsize"] = data.RecordSize.ValueString()
 		}
 		if !data.Quota.IsNull() {
@@ -370,7 +370,7 @@ func (r *DatasetResource) Update(ctx context.Context, req resource.UpdateRequest
 		if !data.RefQuota.IsNull() {
 			updateReq["refquota"] = data.RefQuota.ValueInt64()
 		}
-		if !data.SnapDir.IsNull() {
+		if !data.SnapDir.IsNull() && data.SnapDir.ValueString() != "" {
 			updateReq["snapdir"] = data.SnapDir.ValueString()
 		}
 	}
