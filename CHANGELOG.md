@@ -14,6 +14,50 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Certificate management
 - Cron job management
 
+## [0.2.10] - 2025-10-30
+
+### Fixed
+- **Critical Fix**: VM Read() function now properly reads all properties from TrueNAS API
+  - **Root Cause**: v0.2.9 Read() only read 9 properties, missing 6 optional properties, causing "unknown values" errors
+  - **Impact**: VMs created successfully but Terraform reported inconsistent state after apply
+  - **Solution**: Completely rewrote Read() function to parse ALL VM properties:
+    - `id` - VM identifier
+    - `name` - VM name
+    - `description` - VM description (optional)
+    - `vcpus` - Number of virtual CPUs
+    - `cores` - Number of cores per socket
+    - `threads` - Number of threads per core
+    - `memory` - Memory in MB
+    - `min_memory` - Minimum memory (optional)
+    - `autostart` - Autostart on boot
+    - `bootloader` - Bootloader type (optional)
+    - `cpu_mode` - CPU mode (optional)
+    - `cpu_model` - CPU model (optional)
+    - `machine_type` - Machine type (optional)
+    - `arch_type` - Architecture type (optional)
+    - `time` - Time configuration (optional)
+    - `status` - VM status
+
+### Technical Details
+- **Files Changed**:
+  - `internal/provider/resource_vm.go` - Completely rewrote readVM() function
+- **Key Changes**:
+  - Parse all 16 VM properties from API response
+  - Handle null values for optional properties (description, min_memory, bootloader, cpu_mode, cpu_model, machine_type, arch_type, time)
+  - Convert API response types correctly (float64 for integers, string for text)
+
+### Pattern Recognition
+- **Same issue as v0.2.9 NFS shares and v0.2.6 datasets**: Read() function must read ALL properties to avoid "unknown values" errors
+- This is the **third time** we've fixed this pattern:
+  - v0.2.6: Dataset Read() only read 4 properties → Fixed
+  - v0.2.9: NFS share Read() only read 4 properties → Fixed
+  - v0.2.10: VM Read() only read 9 properties → Fixed
+
+### Backward Compatibility
+- ✅ No breaking changes
+- ✅ All v0.2.9 configurations will work in v0.2.10
+- ✅ Fixes critical state tracking issue for VMs
+
 ## [0.2.9] - 2025-10-30
 
 ### Fixed

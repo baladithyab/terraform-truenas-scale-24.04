@@ -336,12 +336,24 @@ func (r *VMResource) readVM(ctx context.Context, data *VMResourceModel, diags *d
 		return
 	}
 
+	// Read ID
+	if id, ok := result["id"].(float64); ok {
+		data.ID = types.StringValue(strconv.Itoa(int(id)))
+	}
+
+	// Read name
 	if name, ok := result["name"].(string); ok {
 		data.Name = types.StringValue(name)
 	}
-	if description, ok := result["description"].(string); ok {
+
+	// Read description (optional)
+	if description, ok := result["description"].(string); ok && description != "" {
 		data.Description = types.StringValue(description)
+	} else {
+		data.Description = types.StringNull()
 	}
+
+	// Read integer properties
 	if vcpus, ok := result["vcpus"].(float64); ok {
 		data.VCPUs = types.Int64Value(int64(vcpus))
 	}
@@ -354,9 +366,62 @@ func (r *VMResource) readVM(ctx context.Context, data *VMResourceModel, diags *d
 	if memory, ok := result["memory"].(float64); ok {
 		data.Memory = types.Int64Value(int64(memory))
 	}
+
+	// Read min_memory (optional)
+	if minMemory, ok := result["min_memory"].(float64); ok && minMemory > 0 {
+		data.MinMemory = types.Int64Value(int64(minMemory))
+	} else {
+		data.MinMemory = types.Int64Null()
+	}
+
+	// Read autostart
 	if autostart, ok := result["autostart"].(bool); ok {
 		data.Autostart = types.BoolValue(autostart)
 	}
+
+	// Read bootloader (optional)
+	if bootloader, ok := result["bootloader"].(string); ok && bootloader != "" {
+		data.Bootloader = types.StringValue(bootloader)
+	} else {
+		data.Bootloader = types.StringNull()
+	}
+
+	// Read cpu_mode (optional)
+	if cpuMode, ok := result["cpu_mode"].(string); ok && cpuMode != "" {
+		data.CPUMode = types.StringValue(cpuMode)
+	} else {
+		data.CPUMode = types.StringNull()
+	}
+
+	// Read cpu_model (optional)
+	if cpuModel, ok := result["cpu_model"].(string); ok && cpuModel != "" {
+		data.CPUModel = types.StringValue(cpuModel)
+	} else {
+		data.CPUModel = types.StringNull()
+	}
+
+	// Read machine_type (optional)
+	if machineType, ok := result["machine_type"].(string); ok && machineType != "" {
+		data.MachineType = types.StringValue(machineType)
+	} else {
+		data.MachineType = types.StringNull()
+	}
+
+	// Read arch_type (optional)
+	if archType, ok := result["arch_type"].(string); ok && archType != "" {
+		data.ArchType = types.StringValue(archType)
+	} else {
+		data.ArchType = types.StringNull()
+	}
+
+	// Read time (optional)
+	if time, ok := result["time"].(string); ok && time != "" {
+		data.Time = types.StringValue(time)
+	} else {
+		data.Time = types.StringNull()
+	}
+
+	// Read status
 	if status, ok := result["status"].(map[string]interface{}); ok {
 		if state, ok := status["state"].(string); ok {
 			data.Status = types.StringValue(state)
