@@ -14,6 +14,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Certificate management
 - Cron job management
 
+## [0.2.7] - 2025-10-30
+
+### Fixed
+- **Critical Fix**: Provider now correctly parses integer properties from TrueNAS API response
+  - **Root Cause**: v0.2.6 tried to parse `copies` as float64, but API returns it as a string ("1")
+  - **Root Cause**: v0.2.6 didn't handle null values for integer properties (quota, refquota, reservation, refreservation)
+  - **Impact**: Terraform reported "unknown values" for integer properties after apply
+  - **Solution**:
+    - Parse `copies` as string and convert to int64 using `strconv.ParseInt()`
+    - Handle null values for all integer properties using type switch
+    - Set to `types.Int64Null()` when value is null or missing
+  - Integer properties are now correctly parsed and stored in Terraform state
+
+### Technical Details
+- **File**: `internal/provider/resource_dataset.go`
+- **Changes**:
+  - Lines 3-18: Added `strconv` import for string-to-int conversion
+  - Lines 480-527: Fixed parsing for copies, reservation, refreservation
+  - Lines 573-605: Fixed parsing for quota, refquota
+  - All integer properties now handle both null and numeric values correctly
+- **Affected Properties**: copies, reservation, refreservation, quota, refquota
+
+### Backward Compatibility
+- ✅ No breaking changes
+- ✅ All v0.2.6 configurations will work in v0.2.7
+- ✅ Fixes critical issue that prevented Terraform from tracking integer property values
+
 ## [0.2.6] - 2025-10-30
 
 ### Fixed

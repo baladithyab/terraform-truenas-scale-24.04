@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strconv"
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -478,24 +479,49 @@ func (r *DatasetResource) readDataset(ctx context.Context, data *DatasetResource
 	}
 
 	if copies, ok := result["copies"].(map[string]interface{}); ok {
-		if value, ok := copies["value"].(float64); ok {
-			data.Copies = types.Int64Value(int64(value))
+		if value, ok := copies["value"].(string); ok && value != "" {
+			// copies is returned as a string, convert to int64
+			if intValue, err := strconv.ParseInt(value, 10, 64); err == nil {
+				data.Copies = types.Int64Value(intValue)
+			} else {
+				data.Copies = types.Int64Null()
+			}
+		} else {
+			data.Copies = types.Int64Null()
 		}
 	} else {
 		data.Copies = types.Int64Null()
 	}
 
 	if reservation, ok := result["reservation"].(map[string]interface{}); ok {
-		if value, ok := reservation["parsed"].(float64); ok {
-			data.Reservation = types.Int64Value(int64(value))
+		if parsed := reservation["parsed"]; parsed != nil {
+			switch v := parsed.(type) {
+			case float64:
+				data.Reservation = types.Int64Value(int64(v))
+			case int64:
+				data.Reservation = types.Int64Value(v)
+			default:
+				data.Reservation = types.Int64Null()
+			}
+		} else {
+			data.Reservation = types.Int64Null()
 		}
 	} else {
 		data.Reservation = types.Int64Null()
 	}
 
 	if refreserv, ok := result["refreservation"].(map[string]interface{}); ok {
-		if value, ok := refreserv["parsed"].(float64); ok {
-			data.RefReserv = types.Int64Value(int64(value))
+		if parsed := refreserv["parsed"]; parsed != nil {
+			switch v := parsed.(type) {
+			case float64:
+				data.RefReserv = types.Int64Value(int64(v))
+			case int64:
+				data.RefReserv = types.Int64Value(v)
+			default:
+				data.RefReserv = types.Int64Null()
+			}
+		} else {
+			data.RefReserv = types.Int64Null()
 		}
 	} else {
 		data.RefReserv = types.Int64Null()
@@ -546,16 +572,34 @@ func (r *DatasetResource) readDataset(ctx context.Context, data *DatasetResource
 		}
 
 		if quota, ok := result["quota"].(map[string]interface{}); ok {
-			if value, ok := quota["parsed"].(float64); ok {
-				data.Quota = types.Int64Value(int64(value))
+			if parsed := quota["parsed"]; parsed != nil {
+				switch v := parsed.(type) {
+				case float64:
+					data.Quota = types.Int64Value(int64(v))
+				case int64:
+					data.Quota = types.Int64Value(v)
+				default:
+					data.Quota = types.Int64Null()
+				}
+			} else {
+				data.Quota = types.Int64Null()
 			}
 		} else {
 			data.Quota = types.Int64Null()
 		}
 
 		if refquota, ok := result["refquota"].(map[string]interface{}); ok {
-			if value, ok := refquota["parsed"].(float64); ok {
-				data.RefQuota = types.Int64Value(int64(value))
+			if parsed := refquota["parsed"]; parsed != nil {
+				switch v := parsed.(type) {
+				case float64:
+					data.RefQuota = types.Int64Value(int64(v))
+				case int64:
+					data.RefQuota = types.Int64Value(v)
+				default:
+					data.RefQuota = types.Int64Null()
+				}
+			} else {
+				data.RefQuota = types.Int64Null()
 			}
 		} else {
 			data.RefQuota = types.Int64Null()
