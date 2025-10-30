@@ -441,11 +441,64 @@ func (r *DatasetResource) readDataset(ctx context.Context, data *DatasetResource
 		if value, ok := comments["value"].(string); ok {
 			data.Comments = types.StringValue(value)
 		}
+	} else {
+		data.Comments = types.StringNull()
 	}
+
 	if compression, ok := result["compression"].(map[string]interface{}); ok {
 		if value, ok := compression["value"].(string); ok {
 			data.Compression = types.StringValue(value)
 		}
+	} else {
+		data.Compression = types.StringNull()
+	}
+
+	if sync, ok := result["sync"].(map[string]interface{}); ok {
+		if value, ok := sync["value"].(string); ok {
+			data.Sync = types.StringValue(value)
+		}
+	} else {
+		data.Sync = types.StringNull()
+	}
+
+	if dedup, ok := result["deduplication"].(map[string]interface{}); ok {
+		if value, ok := dedup["value"].(string); ok {
+			data.Dedup = types.StringValue(value)
+		}
+	} else {
+		data.Dedup = types.StringNull()
+	}
+
+	if readonly, ok := result["readonly"].(map[string]interface{}); ok {
+		if value, ok := readonly["value"].(string); ok {
+			data.ReadOnly = types.StringValue(value)
+		}
+	} else {
+		data.ReadOnly = types.StringNull()
+	}
+
+	if copies, ok := result["copies"].(map[string]interface{}); ok {
+		if value, ok := copies["value"].(float64); ok {
+			data.Copies = types.Int64Value(int64(value))
+		}
+	} else {
+		data.Copies = types.Int64Null()
+	}
+
+	if reservation, ok := result["reservation"].(map[string]interface{}); ok {
+		if value, ok := reservation["parsed"].(float64); ok {
+			data.Reservation = types.Int64Value(int64(value))
+		}
+	} else {
+		data.Reservation = types.Int64Null()
+	}
+
+	if refreserv, ok := result["refreservation"].(map[string]interface{}); ok {
+		if value, ok := refreserv["parsed"].(float64); ok {
+			data.RefReserv = types.Int64Value(int64(value))
+		}
+	} else {
+		data.RefReserv = types.Int64Null()
 	}
 
 	// Read properties based on dataset type
@@ -455,6 +508,8 @@ func (r *DatasetResource) readDataset(ctx context.Context, data *DatasetResource
 			if value, ok := volsize["parsed"].(float64); ok {
 				data.Volsize = types.Int64Value(int64(value))
 			}
+		} else {
+			data.Volsize = types.Int64Null()
 		}
 
 		// Set FILESYSTEM-only properties to null for VOLUME datasets
@@ -470,6 +525,48 @@ func (r *DatasetResource) readDataset(ctx context.Context, data *DatasetResource
 			if value, ok := atime["value"].(string); ok {
 				data.Atime = types.StringValue(value)
 			}
+		} else {
+			data.Atime = types.StringNull()
+		}
+
+		if exec, ok := result["exec"].(map[string]interface{}); ok {
+			if value, ok := exec["value"].(string); ok {
+				data.Exec = types.StringValue(value)
+			}
+		} else {
+			data.Exec = types.StringNull()
+		}
+
+		if recordsize, ok := result["recordsize"].(map[string]interface{}); ok {
+			if value, ok := recordsize["value"].(string); ok {
+				data.RecordSize = types.StringValue(value)
+			}
+		} else {
+			data.RecordSize = types.StringNull()
+		}
+
+		if quota, ok := result["quota"].(map[string]interface{}); ok {
+			if value, ok := quota["parsed"].(float64); ok {
+				data.Quota = types.Int64Value(int64(value))
+			}
+		} else {
+			data.Quota = types.Int64Null()
+		}
+
+		if refquota, ok := result["refquota"].(map[string]interface{}); ok {
+			if value, ok := refquota["parsed"].(float64); ok {
+				data.RefQuota = types.Int64Value(int64(value))
+			}
+		} else {
+			data.RefQuota = types.Int64Null()
+		}
+
+		if snapdir, ok := result["snapdir"].(map[string]interface{}); ok {
+			if value, ok := snapdir["value"].(string); ok {
+				data.SnapDir = types.StringValue(value)
+			}
+		} else {
+			data.SnapDir = types.StringNull()
 		}
 
 		// Set VOLUME-only properties to null for FILESYSTEM datasets

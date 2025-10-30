@@ -14,6 +14,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Certificate management
 - Cron job management
 
+## [0.2.6] - 2025-10-30
+
+### Fixed
+- **Critical Fix**: Provider now correctly reads all property values from TrueNAS API response
+  - **Root Cause**: v0.2.5 `Read()` function only read a few properties (comments, compression, atime, volsize) and set others to null
+  - **Impact**: Terraform reported "unknown values" after apply, preventing state tracking
+  - **Solution**: Updated `Read()` function to parse and populate ALL properties from API response
+  - Properties are now correctly read from the API and stored in Terraform state
+  - Applied proper null handling for properties that don't exist in the API response
+
+### Technical Details
+- **File**: `internal/provider/resource_dataset.go`
+- **Changes**:
+  - Lines 439-574: Completely rewrote Read() function to read all properties
+  - Added proper parsing for all shared properties: sync, deduplication, readonly, copies, reservation, refreservation
+  - Added proper parsing for all FILESYSTEM properties: exec, recordsize, quota, refquota, snapdir
+  - Added proper null handling when properties don't exist in API response
+- **Affected Properties**: All dataset properties now correctly read from API
+
+### Backward Compatibility
+- ✅ No breaking changes
+- ✅ All v0.2.5 configurations will work in v0.2.6
+- ✅ Fixes critical issue that prevented Terraform from tracking dataset state properly
+
 ## [0.2.5] - 2025-10-30
 
 ### Fixed
