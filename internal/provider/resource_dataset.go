@@ -216,22 +216,45 @@ func (r *DatasetResource) Create(ctx context.Context, req resource.CreateRequest
 	if !data.Comments.IsNull() {
 		createReq["comments"] = data.Comments.ValueString()
 	}
+	if !data.Compression.IsNull() {
+		createReq["compression"] = data.Compression.ValueString()
+	}
+	if !data.Sync.IsNull() {
+		createReq["sync"] = data.Sync.ValueString()
+	}
+	if !data.Dedup.IsNull() {
+		createReq["deduplication"] = data.Dedup.ValueString()
+	}
+	if !data.ReadOnly.IsNull() {
+		createReq["readonly"] = data.ReadOnly.ValueString()
+	}
+	if !data.Copies.IsNull() {
+		createReq["copies"] = data.Copies.ValueInt64()
+	}
+	if !data.Reservation.IsNull() {
+		createReq["reservation"] = data.Reservation.ValueInt64()
+	}
+	if !data.RefReserv.IsNull() {
+		createReq["refreservation"] = data.RefReserv.ValueInt64()
+	}
 
-	// Fix Bug 2: Only send VOLUME-specific properties for VOLUME datasets
+	// VOLUME-specific properties
 	if datasetType == "VOLUME" {
 		if !data.Volsize.IsNull() && !data.Volsize.IsUnknown() {
 			createReq["volsize"] = data.Volsize.ValueInt64()
 		}
-		// Note: Most properties like compression, atime, etc. are not valid for VOLUME in TrueNAS Scale 24.04
 	}
 
-	// Fix Bug 2: Only send FILESYSTEM-specific properties for FILESYSTEM datasets
+	// FILESYSTEM-specific properties
 	if datasetType == "FILESYSTEM" {
-		if !data.Compression.IsNull() {
-			createReq["compression"] = data.Compression.ValueString()
-		}
 		if !data.Atime.IsNull() {
 			createReq["atime"] = data.Atime.ValueString()
+		}
+		if !data.Exec.IsNull() {
+			createReq["exec"] = data.Exec.ValueString()
+		}
+		if !data.RecordSize.IsNull() {
+			createReq["recordsize"] = data.RecordSize.ValueString()
 		}
 		if !data.Quota.IsNull() {
 			createReq["quota"] = data.Quota.ValueInt64()
@@ -239,32 +262,8 @@ func (r *DatasetResource) Create(ctx context.Context, req resource.CreateRequest
 		if !data.RefQuota.IsNull() {
 			createReq["refquota"] = data.RefQuota.ValueInt64()
 		}
-		if !data.Reservation.IsNull() {
-			createReq["reservation"] = data.Reservation.ValueInt64()
-		}
-		if !data.RefReserv.IsNull() {
-			createReq["refreservation"] = data.RefReserv.ValueInt64()
-		}
-		if !data.Dedup.IsNull() {
-			createReq["deduplication"] = data.Dedup.ValueString()
-		}
-		if !data.ReadOnly.IsNull() {
-			createReq["readonly"] = data.ReadOnly.ValueString()
-		}
-		if !data.Exec.IsNull() {
-			createReq["exec"] = data.Exec.ValueString()
-		}
-		if !data.Sync.IsNull() {
-			createReq["sync"] = data.Sync.ValueString()
-		}
 		if !data.SnapDir.IsNull() {
 			createReq["snapdir"] = data.SnapDir.ValueString()
-		}
-		if !data.Copies.IsNull() {
-			createReq["copies"] = data.Copies.ValueInt64()
-		}
-		if !data.RecordSize.IsNull() {
-			createReq["recordsize"] = data.RecordSize.ValueString()
 		}
 	}
 
@@ -325,21 +324,45 @@ func (r *DatasetResource) Update(ctx context.Context, req resource.UpdateRequest
 	if !data.Comments.IsNull() {
 		updateReq["comments"] = data.Comments.ValueString()
 	}
+	if !data.Compression.IsNull() {
+		updateReq["compression"] = data.Compression.ValueString()
+	}
+	if !data.Sync.IsNull() {
+		updateReq["sync"] = data.Sync.ValueString()
+	}
+	if !data.Dedup.IsNull() {
+		updateReq["deduplication"] = data.Dedup.ValueString()
+	}
+	if !data.ReadOnly.IsNull() {
+		updateReq["readonly"] = data.ReadOnly.ValueString()
+	}
+	if !data.Copies.IsNull() {
+		updateReq["copies"] = data.Copies.ValueInt64()
+	}
+	if !data.Reservation.IsNull() {
+		updateReq["reservation"] = data.Reservation.ValueInt64()
+	}
+	if !data.RefReserv.IsNull() {
+		updateReq["refreservation"] = data.RefReserv.ValueInt64()
+	}
 
-	// Fix Bug 2: Only send VOLUME-specific properties for VOLUME datasets
+	// VOLUME-specific properties
 	if datasetType == "VOLUME" {
 		if !data.Volsize.IsNull() && !data.Volsize.IsUnknown() {
 			updateReq["volsize"] = data.Volsize.ValueInt64()
 		}
 	}
 
-	// Fix Bug 2: Only send FILESYSTEM-specific properties for FILESYSTEM datasets
+	// FILESYSTEM-specific properties
 	if datasetType == "FILESYSTEM" {
-		if !data.Compression.IsNull() {
-			updateReq["compression"] = data.Compression.ValueString()
-		}
 		if !data.Atime.IsNull() {
 			updateReq["atime"] = data.Atime.ValueString()
+		}
+		if !data.Exec.IsNull() {
+			updateReq["exec"] = data.Exec.ValueString()
+		}
+		if !data.RecordSize.IsNull() {
+			updateReq["recordsize"] = data.RecordSize.ValueString()
 		}
 		if !data.Quota.IsNull() {
 			updateReq["quota"] = data.Quota.ValueInt64()
@@ -347,32 +370,8 @@ func (r *DatasetResource) Update(ctx context.Context, req resource.UpdateRequest
 		if !data.RefQuota.IsNull() {
 			updateReq["refquota"] = data.RefQuota.ValueInt64()
 		}
-		if !data.Reservation.IsNull() {
-			updateReq["reservation"] = data.Reservation.ValueInt64()
-		}
-		if !data.RefReserv.IsNull() {
-			updateReq["refreservation"] = data.RefReserv.ValueInt64()
-		}
-		if !data.Dedup.IsNull() {
-			updateReq["deduplication"] = data.Dedup.ValueString()
-		}
-		if !data.ReadOnly.IsNull() {
-			updateReq["readonly"] = data.ReadOnly.ValueString()
-		}
-		if !data.Exec.IsNull() {
-			updateReq["exec"] = data.Exec.ValueString()
-		}
-		if !data.Sync.IsNull() {
-			updateReq["sync"] = data.Sync.ValueString()
-		}
 		if !data.SnapDir.IsNull() {
 			updateReq["snapdir"] = data.SnapDir.ValueString()
-		}
-		if !data.Copies.IsNull() {
-			updateReq["copies"] = data.Copies.ValueInt64()
-		}
-		if !data.RecordSize.IsNull() {
-			updateReq["recordsize"] = data.RecordSize.ValueString()
 		}
 	}
 
@@ -429,9 +428,15 @@ func (r *DatasetResource) readDataset(ctx context.Context, data *DatasetResource
 		data.Name = types.StringValue(name)
 		data.ID = types.StringValue(name)
 	}
+
+	// Determine dataset type first
+	datasetType := "FILESYSTEM"
 	if dtype, ok := result["type"].(string); ok {
+		datasetType = dtype
 		data.Type = types.StringValue(dtype)
 	}
+
+	// Read properties valid for BOTH FILESYSTEM and VOLUME
 	if comments, ok := result["comments"].(map[string]interface{}); ok {
 		if value, ok := comments["value"].(string); ok {
 			data.Comments = types.StringValue(value)
@@ -442,22 +447,32 @@ func (r *DatasetResource) readDataset(ctx context.Context, data *DatasetResource
 			data.Compression = types.StringValue(value)
 		}
 	}
-	if atime, ok := result["atime"].(map[string]interface{}); ok {
-		if value, ok := atime["value"].(string); ok {
-			data.Atime = types.StringValue(value)
-		}
-	}
 
-	// Read volsize if present (only for VOLUME type datasets)
-	if volsize, ok := result["volsize"].(map[string]interface{}); ok {
-		if value, ok := volsize["parsed"].(float64); ok {
-			data.Volsize = types.Int64Value(int64(value))
-		} else if _, ok := volsize["value"].(string); ok {
-			// Sometimes TrueNAS returns volsize as a string
-			// For now, just set it as null if we can't parse
-			data.Volsize = types.Int64Null()
+	// Read properties based on dataset type
+	if datasetType == "VOLUME" {
+		// Read VOLUME-specific properties
+		if volsize, ok := result["volsize"].(map[string]interface{}); ok {
+			if value, ok := volsize["parsed"].(float64); ok {
+				data.Volsize = types.Int64Value(int64(value))
+			}
 		}
+
+		// Set FILESYSTEM-only properties to null for VOLUME datasets
+		data.Atime = types.StringNull()
+		data.Exec = types.StringNull()
+		data.RecordSize = types.StringNull()
+		data.Quota = types.Int64Null()
+		data.RefQuota = types.Int64Null()
+		data.SnapDir = types.StringNull()
 	} else {
+		// Read FILESYSTEM-specific properties
+		if atime, ok := result["atime"].(map[string]interface{}); ok {
+			if value, ok := atime["value"].(string); ok {
+				data.Atime = types.StringValue(value)
+			}
+		}
+
+		// Set VOLUME-only properties to null for FILESYSTEM datasets
 		data.Volsize = types.Int64Null()
 	}
 }

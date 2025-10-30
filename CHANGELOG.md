@@ -14,6 +14,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Certificate management
 - Cron job management
 
+## [0.2.3] - 2025-10-30
+
+### Fixed
+- **Critical Fix**: Corrected property categorization for VOLUME vs FILESYSTEM datasets
+  - **Root Cause**: v0.2.2 incorrectly treated shared properties as FILESYSTEM-only
+  - **Impact**: VOLUME datasets could not be created because provider wasn't sending compression, sync, deduplication
+  - **Solution**: Properly categorized properties into three groups:
+    1. **Valid for BOTH types**: compression, sync, deduplication, readonly, copies, reservation, refreservation, comments
+    2. **VOLUME-specific**: volsize (required), volblocksize, sparse
+    3. **FILESYSTEM-specific**: atime, exec, recordsize, quota, refquota, snapdir
+  - Updated Create(), Update(), and Read() functions with correct property handling
+  - Read() function now sets FILESYSTEM-only properties to null for VOLUME datasets and vice versa
+
+### Technical Details
+- **File**: `internal/provider/resource_dataset.go`
+- **Changes**:
+  - Lines 209-268: Refactored Create() with correct property categorization
+  - Lines 320-376: Refactored Update() with correct property categorization
+  - Lines 426-477: Refactored Read() to conditionally read/set properties based on dataset type
+- **Testing**: Verified with live TrueNAS Scale 24.04 API
+  - ✅ VOLUME datasets now accept compression, sync, deduplication
+  - ✅ VOLUME datasets correctly reject atime, exec, recordsize, quota, refquota, snapdir
+  - ✅ FILESYSTEM datasets work as expected
+  - ✅ Both dataset types fully functional
+
+### Backward Compatibility
+- ✅ No breaking changes
+- ✅ All v0.2.2 configurations will work in v0.2.3
+- ✅ Fixes critical issue that prevented VOLUME datasets from being created in v0.2.2
+
 ## [0.2.2] - 2025-10-30
 
 ### Fixed
