@@ -14,6 +14,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Certificate management
 - Cron job management
 
+## [0.2.5] - 2025-10-30
+
+### Fixed
+- **Critical Fix**: Provider now correctly omits integer properties with zero values
+  - **Root Cause**: v0.2.4 checked `!IsNull()` but still sent zero values (`0`) to the API for unset integer properties
+  - **Impact**: TrueNAS API rejected requests with "'copies' must be one of '1 | 2 | 3'" errors for zero values
+  - **Solution**: Added value validation (`&& data.PropertyName.ValueInt64() > 0`) for all integer properties
+  - Integer properties are now only included in API requests if they have positive (non-zero) values
+  - Applied to both `Create()` and `Update()` functions
+
+### Technical Details
+- **File**: `internal/provider/resource_dataset.go`
+- **Changes**:
+  - Lines 231-268: Updated Create() to validate integer values before sending
+  - Lines 339-376: Updated Update() to validate integer values before sending
+- **Affected Properties**: copies, reservation, refreservation, volsize, quota, refquota
+- **String Properties**: No change (already fixed in v0.2.4)
+
+### Backward Compatibility
+- ✅ No breaking changes
+- ✅ All v0.2.4 configurations will work in v0.2.5
+- ✅ Fixes critical issue that prevented datasets from being created when optional integer properties had zero values
+
 ## [0.2.4] - 2025-10-30
 
 ### Fixed

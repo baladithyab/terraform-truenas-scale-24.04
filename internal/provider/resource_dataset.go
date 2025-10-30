@@ -228,19 +228,19 @@ func (r *DatasetResource) Create(ctx context.Context, req resource.CreateRequest
 	if !data.ReadOnly.IsNull() && data.ReadOnly.ValueString() != "" {
 		createReq["readonly"] = data.ReadOnly.ValueString()
 	}
-	if !data.Copies.IsNull() {
+	if !data.Copies.IsNull() && data.Copies.ValueInt64() > 0 {
 		createReq["copies"] = data.Copies.ValueInt64()
 	}
-	if !data.Reservation.IsNull() {
+	if !data.Reservation.IsNull() && data.Reservation.ValueInt64() > 0 {
 		createReq["reservation"] = data.Reservation.ValueInt64()
 	}
-	if !data.RefReserv.IsNull() {
+	if !data.RefReserv.IsNull() && data.RefReserv.ValueInt64() > 0 {
 		createReq["refreservation"] = data.RefReserv.ValueInt64()
 	}
 
 	// VOLUME-specific properties
 	if datasetType == "VOLUME" {
-		if !data.Volsize.IsNull() && !data.Volsize.IsUnknown() {
+		if !data.Volsize.IsNull() && !data.Volsize.IsUnknown() && data.Volsize.ValueInt64() > 0 {
 			createReq["volsize"] = data.Volsize.ValueInt64()
 		}
 	}
@@ -256,10 +256,10 @@ func (r *DatasetResource) Create(ctx context.Context, req resource.CreateRequest
 		if !data.RecordSize.IsNull() && data.RecordSize.ValueString() != "" {
 			createReq["recordsize"] = data.RecordSize.ValueString()
 		}
-		if !data.Quota.IsNull() {
+		if !data.Quota.IsNull() && data.Quota.ValueInt64() > 0 {
 			createReq["quota"] = data.Quota.ValueInt64()
 		}
-		if !data.RefQuota.IsNull() {
+		if !data.RefQuota.IsNull() && data.RefQuota.ValueInt64() > 0 {
 			createReq["refquota"] = data.RefQuota.ValueInt64()
 		}
 		if !data.SnapDir.IsNull() && data.SnapDir.ValueString() != "" {
@@ -336,19 +336,19 @@ func (r *DatasetResource) Update(ctx context.Context, req resource.UpdateRequest
 	if !data.ReadOnly.IsNull() && data.ReadOnly.ValueString() != "" {
 		updateReq["readonly"] = data.ReadOnly.ValueString()
 	}
-	if !data.Copies.IsNull() {
+	if !data.Copies.IsNull() && data.Copies.ValueInt64() > 0 {
 		updateReq["copies"] = data.Copies.ValueInt64()
 	}
-	if !data.Reservation.IsNull() {
+	if !data.Reservation.IsNull() && data.Reservation.ValueInt64() > 0 {
 		updateReq["reservation"] = data.Reservation.ValueInt64()
 	}
-	if !data.RefReserv.IsNull() {
+	if !data.RefReserv.IsNull() && data.RefReserv.ValueInt64() > 0 {
 		updateReq["refreservation"] = data.RefReserv.ValueInt64()
 	}
 
 	// VOLUME-specific properties
 	if datasetType == "VOLUME" {
-		if !data.Volsize.IsNull() && !data.Volsize.IsUnknown() {
+		if !data.Volsize.IsNull() && !data.Volsize.IsUnknown() && data.Volsize.ValueInt64() > 0 {
 			updateReq["volsize"] = data.Volsize.ValueInt64()
 		}
 	}
@@ -364,10 +364,10 @@ func (r *DatasetResource) Update(ctx context.Context, req resource.UpdateRequest
 		if !data.RecordSize.IsNull() && data.RecordSize.ValueString() != "" {
 			updateReq["recordsize"] = data.RecordSize.ValueString()
 		}
-		if !data.Quota.IsNull() {
+		if !data.Quota.IsNull() && data.Quota.ValueInt64() > 0 {
 			updateReq["quota"] = data.Quota.ValueInt64()
 		}
-		if !data.RefQuota.IsNull() {
+		if !data.RefQuota.IsNull() && data.RefQuota.ValueInt64() > 0 {
 			updateReq["refquota"] = data.RefQuota.ValueInt64()
 		}
 		if !data.SnapDir.IsNull() && data.SnapDir.ValueString() != "" {
