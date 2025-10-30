@@ -28,22 +28,23 @@ type VMResource struct {
 }
 
 type VMResourceModel struct {
-	ID          types.String `tfsdk:"id"`
-	Name        types.String `tfsdk:"name"`
-	Description types.String `tfsdk:"description"`
-	VCPUs       types.Int64  `tfsdk:"vcpus"`
-	Cores       types.Int64  `tfsdk:"cores"`
-	Threads     types.Int64  `tfsdk:"threads"`
-	Memory      types.Int64  `tfsdk:"memory"`
-	MinMemory   types.Int64  `tfsdk:"min_memory"`
-	Autostart   types.Bool   `tfsdk:"autostart"`
-	Bootloader  types.String `tfsdk:"bootloader"`
-	CPUMode     types.String `tfsdk:"cpu_mode"`
-	CPUModel    types.String `tfsdk:"cpu_model"`
-	MachineType types.String `tfsdk:"machine_type"`
-	ArchType    types.String `tfsdk:"arch_type"`
-	Time        types.String `tfsdk:"time"`
-	Status      types.String `tfsdk:"status"`
+	ID            types.String `tfsdk:"id"`
+	Name          types.String `tfsdk:"name"`
+	Description   types.String `tfsdk:"description"`
+	VCPUs         types.Int64  `tfsdk:"vcpus"`
+	Cores         types.Int64  `tfsdk:"cores"`
+	Threads       types.Int64  `tfsdk:"threads"`
+	Memory        types.Int64  `tfsdk:"memory"`
+	MinMemory     types.Int64  `tfsdk:"min_memory"`
+	Autostart     types.Bool   `tfsdk:"autostart"`
+	StartOnCreate types.Bool   `tfsdk:"start_on_create"`
+	Bootloader    types.String `tfsdk:"bootloader"`
+	CPUMode       types.String `tfsdk:"cpu_mode"`
+	CPUModel      types.String `tfsdk:"cpu_model"`
+	MachineType   types.String `tfsdk:"machine_type"`
+	ArchType      types.String `tfsdk:"arch_type"`
+	Time          types.String `tfsdk:"time"`
+	Status        types.String `tfsdk:"status"`
 }
 
 func (r *VMResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -98,6 +99,10 @@ func (r *VMResource) Schema(ctx context.Context, req resource.SchemaRequest, res
 				MarkdownDescription: "Start VM automatically on boot",
 				Optional:            true,
 				Computed:            true,
+			},
+			"start_on_create": schema.BoolAttribute{
+				MarkdownDescription: "Start VM immediately after creation (default: false)",
+				Optional:            true,
 			},
 			"bootloader": schema.StringAttribute{
 				MarkdownDescription: "Bootloader type (UEFI, UEFI_CSM, GRUB)",
@@ -225,6 +230,18 @@ func (r *VMResource) Create(ctx context.Context, req resource.CreateRequest, res
 
 	if id, ok := result["id"].(float64); ok {
 		data.ID = types.StringValue(strconv.Itoa(int(id)))
+	}
+
+	// Start VM if start_on_create is true
+	if !data.StartOnCreate.IsNull() && data.StartOnCreate.ValueBool() {
+		startEndpoint := fmt.Sprintf("/vm/id/%s/start", data.ID.ValueString())
+		_, err := r.client.Post(startEndpoint, nil)
+		if err != nil {
+			resp.Diagnostics.AddWarning(
+				"VM Start Warning",
+				fmt.Sprintf("VM created successfully but failed to start: %s. You can start it manually.", err),
+			)
+		}
 	}
 
 	r.readVM(ctx, &data, &resp.Diagnostics)

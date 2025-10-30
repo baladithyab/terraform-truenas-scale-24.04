@@ -14,6 +14,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Certificate management
 - Cron job management
 
+## [0.2.11] - 2025-10-30
+
+### Added
+- **VM Start on Create**: New `start_on_create` attribute for VM resource
+  - **Feature**: Automatically start VM after creation
+  - **Use Case**: Eliminates manual step of starting VMs after Terraform creates them
+  - **Default**: `false` (VMs are created but not started by default)
+  - **Behavior**: When set to `true`, provider calls `/vm/id/{id}/start` API endpoint after VM creation
+  - **Error Handling**: If start fails, VM is still created successfully and a warning is shown
+
+### Technical Details
+- **Files Changed**:
+  - `internal/provider/resource_vm.go` - Added `start_on_create` attribute and start logic
+- **API Endpoints Used**:
+  - `POST /vm/id/{id}/start` - Start a VM
+- **Key Changes**:
+  - Added `StartOnCreate` field to `VMResourceModel`
+  - Added `start_on_create` schema attribute (optional, default: false)
+  - Added start logic in Create() function after VM creation
+  - Start failures generate warnings (not errors) to avoid blocking VM creation
+
+### Usage Example
+```hcl
+resource "truenas_vm" "example" {
+  name            = "my_vm"
+  memory          = 4096
+  vcpus           = 2
+  cores           = 1
+  threads         = 1
+  start_on_create = true  # VM will be started automatically after creation
+}
+```
+
+### Backward Compatibility
+- ✅ No breaking changes
+- ✅ All v0.2.10 configurations will work in v0.2.11
+- ✅ `start_on_create` is optional and defaults to `false`
+
 ## [0.2.10] - 2025-10-30
 
 ### Fixed
