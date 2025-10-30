@@ -429,8 +429,8 @@ func (r *DatasetResource) readDataset(ctx context.Context, data *DatasetResource
 	if volsize, ok := result["volsize"].(map[string]interface{}); ok {
 		if value, ok := volsize["parsed"].(float64); ok {
 			data.Volsize = types.Int64Value(int64(value))
-		} else if value, ok := volsize["value"].(string); ok {
-			// Sometimes TrueNAS returns volsize as a string, try to parse it
+		} else if _, ok := volsize["value"].(string); ok {
+			// Sometimes TrueNAS returns volsize as a string
 			// For now, just set it as null if we can't parse
 			data.Volsize = types.Int64Null()
 		}
