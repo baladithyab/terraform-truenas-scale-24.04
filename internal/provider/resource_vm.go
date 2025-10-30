@@ -167,40 +167,47 @@ func (r *VMResource) Create(ctx context.Context, req resource.CreateRequest, res
 		"memory": data.Memory.ValueInt64(),
 	}
 
-	if !data.Description.IsNull() {
+	// Handle optional string fields - only send if non-empty
+	if !data.Description.IsNull() && data.Description.ValueString() != "" {
 		createReq["description"] = data.Description.ValueString()
 	}
-	if !data.VCPUs.IsNull() {
+
+	// Handle optional integer fields - only send if > 0
+	if !data.VCPUs.IsNull() && data.VCPUs.ValueInt64() > 0 {
 		createReq["vcpus"] = data.VCPUs.ValueInt64()
 	}
-	if !data.Cores.IsNull() {
+	if !data.Cores.IsNull() && data.Cores.ValueInt64() > 0 {
 		createReq["cores"] = data.Cores.ValueInt64()
 	}
-	if !data.Threads.IsNull() {
+	if !data.Threads.IsNull() && data.Threads.ValueInt64() > 0 {
 		createReq["threads"] = data.Threads.ValueInt64()
 	}
-	if !data.MinMemory.IsNull() {
+	if !data.MinMemory.IsNull() && data.MinMemory.ValueInt64() > 0 {
 		createReq["min_memory"] = data.MinMemory.ValueInt64()
 	}
+
+	// Handle optional boolean fields
 	if !data.Autostart.IsNull() {
 		createReq["autostart"] = data.Autostart.ValueBool()
 	}
-	if !data.Bootloader.IsNull() {
+
+	// Handle optional string fields - only send if non-empty
+	if !data.Bootloader.IsNull() && data.Bootloader.ValueString() != "" {
 		createReq["bootloader"] = data.Bootloader.ValueString()
 	}
-	if !data.CPUMode.IsNull() {
+	if !data.CPUMode.IsNull() && data.CPUMode.ValueString() != "" {
 		createReq["cpu_mode"] = data.CPUMode.ValueString()
 	}
-	if !data.CPUModel.IsNull() {
+	if !data.CPUModel.IsNull() && data.CPUModel.ValueString() != "" {
 		createReq["cpu_model"] = data.CPUModel.ValueString()
 	}
-	if !data.MachineType.IsNull() {
+	if !data.MachineType.IsNull() && data.MachineType.ValueString() != "" {
 		createReq["machine_type"] = data.MachineType.ValueString()
 	}
-	if !data.ArchType.IsNull() {
+	if !data.ArchType.IsNull() && data.ArchType.ValueString() != "" {
 		createReq["arch_type"] = data.ArchType.ValueString()
 	}
-	if !data.Time.IsNull() {
+	if !data.Time.IsNull() && data.Time.ValueString() != "" {
 		createReq["time"] = data.Time.ValueString()
 	}
 

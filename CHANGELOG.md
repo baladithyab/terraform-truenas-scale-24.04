@@ -14,6 +14,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Certificate management
 - Cron job management
 
+## [0.2.8] - 2025-10-30
+
+### Fixed
+- **Critical Fix**: NFS share creation now works with default values for required fields
+  - **Root Cause**: TrueNAS API requires `hosts` and `security` fields, but provider sent null when not specified
+  - **Impact**: NFS share creation failed with "null not allowed" errors
+  - **Solution**: Default `hosts` and `security` to empty arrays `[]` when not specified
+
+- **Critical Fix**: Snapshot task creation now accepts cron-style schedule format
+  - **Root Cause**: Provider expected JSON schedule format, but users provide cron strings like "0 2 * * *"
+  - **Impact**: Snapshot task creation failed with JSON parse errors
+  - **Solution**:
+    - Added `parseCronSchedule()` helper to convert cron format to JSON
+    - Added `scheduleToCron()` helper to convert JSON back to cron format
+    - Create/Update functions now parse cron strings to JSON
+    - Read function now converts JSON back to cron strings
+
+- **Critical Fix**: VM creation now works with optional string fields
+  - **Root Cause**: Provider sent empty strings for optional fields like `cpu_mode` and `time`
+  - **Impact**: VM creation failed with "Invalid choice: " errors
+  - **Solution**: Only send optional string fields if they have non-empty values
+
+### Technical Details
+- **Files Changed**:
+  - `internal/provider/resource_nfs_share.go` - Default hosts and security to empty arrays
+  - `internal/provider/resource_periodic_snapshot_task.go` - Parse cron schedule format
+  - `internal/provider/resource_vm.go` - Only send non-empty string values
+- **Affected Resources**: NFS shares, snapshot tasks, VMs
+
+### Backward Compatibility
+- ✅ No breaking changes
+- ✅ All v0.2.7 configurations will work in v0.2.8
+- ✅ Fixes critical issues that prevented NFS shares, snapshot tasks, and VMs from being created
+
 ## [0.2.7] - 2025-10-30
 
 ### Fixed

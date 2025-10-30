@@ -143,11 +143,16 @@ func (r *NFSShareResource) Create(ctx context.Context, req resource.CreateReques
 		resp.Diagnostics.Append(data.Networks.ElementsAs(ctx, &networks, false)...)
 		createReq["networks"] = networks
 	}
-	if !data.Hosts.IsNull() {
+
+	// hosts and security are required by TrueNAS API - default to empty array if not specified
+	if !data.Hosts.IsNull() && !data.Hosts.IsUnknown() {
 		var hosts []string
 		resp.Diagnostics.Append(data.Hosts.ElementsAs(ctx, &hosts, false)...)
 		createReq["hosts"] = hosts
+	} else {
+		createReq["hosts"] = []string{}  // Default: allow all hosts
 	}
+
 	if !data.ReadOnly.IsNull() {
 		createReq["ro"] = data.ReadOnly.ValueBool()
 	}
@@ -157,11 +162,16 @@ func (r *NFSShareResource) Create(ctx context.Context, req resource.CreateReques
 	if !data.Mapall.IsNull() {
 		createReq["mapall_user"] = data.Mapall.ValueString()
 	}
-	if !data.Security.IsNull() {
+
+	// security is required by TrueNAS API - default to empty array if not specified
+	if !data.Security.IsNull() && !data.Security.IsUnknown() {
 		var security []string
 		resp.Diagnostics.Append(data.Security.ElementsAs(ctx, &security, false)...)
 		createReq["security"] = security
+	} else {
+		createReq["security"] = []string{}  // Default: no security restrictions
 	}
+
 	if !data.Enabled.IsNull() {
 		createReq["enabled"] = data.Enabled.ValueBool()
 	}

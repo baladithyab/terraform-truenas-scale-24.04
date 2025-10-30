@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -17,6 +18,33 @@ import (
 
 var _ resource.Resource = &PeriodicSnapshotTaskResource{}
 var _ resource.ResourceWithImportState = &PeriodicSnapshotTaskResource{}
+
+// Helper function to parse cron schedule to JSON format expected by TrueNAS
+func parseCronSchedule(cronStr string) (map[string]interface{}, error) {
+	parts := strings.Fields(cronStr)
+	if len(parts) != 5 {
+		return nil, fmt.Errorf("invalid cron format: expected 5 fields (minute hour dom month dow), got %d", len(parts))
+	}
+
+	return map[string]interface{}{
+		"minute": parts[0],
+		"hour":   parts[1],
+		"dom":    parts[2], // day of month
+		"month":  parts[3],
+		"dow":    parts[4], // day of week
+	}, nil
+}
+
+// Helper function to convert JSON schedule to cron format
+func scheduleToCron(schedule map[string]interface{}) string {
+	return fmt.Sprintf("%s %s %s %s %s",
+		schedule["minute"],
+		schedule["hour"],
+		schedule["dom"],
+		schedule["month"],
+		schedule["dow"],
+	)
+}
 
 func NewPeriodicSnapshotTaskResource() resource.Resource {
 	return &PeriodicSnapshotTaskResource{}
@@ -130,10 +158,10 @@ func (r *PeriodicSnapshotTaskResource) Create(ctx context.Context, req resource.
 		"lifetime_unit":  data.LifetimeUnit.ValueString(),
 	}
 
-	// Parse schedule JSON
-	var schedule map[string]interface{}
-	if err := json.Unmarshal([]byte(data.Schedule.ValueString()), &schedule); err != nil {
-		resp.Diagnostics.AddError("Parse Error", fmt.Sprintf("Unable to parse schedule JSON: %s", err))
+	// Parse schedule from cron format to JSON
+	schedule, err := parseCronSchedule(data.Schedule.ValueString())
+	if err != nil {
+		resp.Diagnostics.AddError("Invalid Schedule Format", fmt.Sprintf("Unable to parse schedule: %s", err))
 		return
 	}
 	createReq["schedule"] = schedule
@@ -221,11 +249,11 @@ func (r *PeriodicSnapshotTaskResource) Update(ctx context.Context, req resource.
 		updateReq["allow_empty"] = data.AllowEmpty.ValueBool()
 	}
 
-	// Parse schedule JSON
+	// Parse schedule from cron format to JSON
 	if !data.Schedule.IsNull() {
-		var schedule map[string]interface{}
-		if err := json.Unmarshal([]byte(data.Schedule.ValueString()), &schedule); err != nil {
-			resp.Diagnostics.AddError("Parse Error", fmt.Sprintf("Unable to parse schedule JSON: %s", err))
+		schedule, err := parseCronSchedule(data.Schedule.ValueString())
+		if err != nil {
+			resp.Diagnostics.AddError("Invalid Schedule Format", fmt.Sprintf("Unable to parse schedule: %s", err))
 			return
 		}
 		updateReq["schedule"] = schedule
@@ -307,8 +335,9 @@ func (r *PeriodicSnapshotTaskResource) readPeriodicSnapshotTask(ctx context.Cont
 		data.AllowEmpty = types.BoolValue(allowEmpty)
 	}
 	if schedule, ok := result["schedule"].(map[string]interface{}); ok {
-		scheduleJSON, _ := json.Marshal(schedule)
-		data.Schedule = types.StringValue(string(scheduleJSON))
+		// Convert JSON schedule back to cron format
+		cronStr := scheduleToCron(schedule)
+		data.Schedule = types.StringValue(cronStr)
 	}
 }
 
