@@ -458,7 +458,7 @@ When implementing new resources, test against your TrueNAS server:
 
 ```bash
 # Get the full OpenAPI spec
-curl http://10.0.0.213:81/api/v2.0 > openapi.json
+curl http://10.0.0.83:81/api/v2.0 > openapi.json
 
 # Search for specific endpoints
 cat openapi.json | jq '.paths | keys[] | select(contains("vm"))'

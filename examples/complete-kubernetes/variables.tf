@@ -1,7 +1,7 @@
 variable "truenas_base_url" {
   description = "TrueNAS base URL"
   type        = string
-  default     = "http://10.0.0.213:81"
+  default     = "http://10.0.0.83:81"
 }
 
 variable "truenas_api_key" {

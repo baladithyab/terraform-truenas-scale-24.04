@@ -40,7 +40,7 @@ func (p *TruenasProvider) Schema(ctx context.Context, req provider.SchemaRequest
 		Description: "Terraform provider for TrueNAS Scale 24.04 REST API",
 		Attributes: map[string]schema.Attribute{
 			"base_url": schema.StringAttribute{
-				Description: "The base URL of the TrueNAS server (e.g., http://10.0.0.213:81 or https://truenas.local). Can also be set via TRUENAS_BASE_URL environment variable.",
+				Description: "The base URL of the TrueNAS server (e.g., http://10.0.0.83:81 or https://truenas.local). Can also be set via TRUENAS_BASE_URL environment variable.",
 				Optional:    true,
 			},
 			"api_key": schema.StringAttribute{

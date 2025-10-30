@@ -4,7 +4,7 @@ This guide provides instructions for testing the TrueNAS Terraform provider.
 
 ## Prerequisites
 
-1. TrueNAS Scale 24.04 server (accessible at http://10.0.0.213:81 or your server IP)
+1. TrueNAS Scale 24.04 server (accessible at http://10.0.0.83:81 or your server IP)
 2. TrueNAS API key
 3. At least one ZFS pool created (e.g., "tank")
 4. Provider built and installed locally
@@ -22,7 +22,7 @@ make install
 ### 2. Set Environment Variables
 
 ```bash
-export TRUENAS_BASE_URL="http://10.0.0.213:81"
+export TRUENAS_BASE_URL="http://10.0.0.83:81"
 export TRUENAS_API_KEY="your-api-key-here"
 ```
 

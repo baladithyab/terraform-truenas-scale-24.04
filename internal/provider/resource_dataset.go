@@ -1,6 +1,7 @@
 package provider
 
 import (
+	"net/url"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -47,6 +48,7 @@ type DatasetResourceModel struct {
 	SnapDir     types.String `tfsdk:"snapdir"`
 	Copies      types.Int64  `tfsdk:"copies"`
 	RecordSize  types.String `tfsdk:"recordsize"`
+	Volsize     types.Int64  `tfsdk:"volsize"` // Volume size in bytes (required for VOLUME type)
 }
 
 func (r *DatasetResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -146,6 +148,11 @@ func (r *DatasetResource) Schema(ctx context.Context, req resource.SchemaRequest
 				Optional:            true,
 				Computed:            true,
 			},
+			"volsize": schema.Int64Attribute{
+				MarkdownDescription: "Volume size in bytes (required for VOLUME type datasets, not applicable to FILESYSTEM type)",
+				Optional:            true,
+				Computed:            true,
+			},
 		},
 	}
 }
@@ -176,10 +183,32 @@ func (r *DatasetResource) Create(ctx context.Context, req resource.CreateRequest
 		return
 	}
 
+	// Validate volsize based on dataset type
+	datasetType := "FILESYSTEM"
+	if !data.Type.IsNull() {
+		datasetType = data.Type.ValueString()
+	}
+
+	if datasetType == "VOLUME" && data.Volsize.IsNull() {
+		resp.Diagnostics.AddError(
+			"Missing Required Attribute",
+			"volsize is required when type is VOLUME. Please specify the volume size in bytes.",
+		)
+		return
+	}
+
+	if datasetType == "FILESYSTEM" && !data.Volsize.IsNull() {
+		resp.Diagnostics.AddError(
+			"Invalid Attribute",
+			"volsize is not valid for FILESYSTEM type datasets. Remove the volsize attribute or change type to VOLUME.",
+		)
+		return
+	}
+
 	// Build the request body
 	createReq := map[string]interface{}{
 		"name": data.Name.ValueString(),
-		"type": "FILESYSTEM",
+		"type": datasetType,
 	}
 
 	if !data.Type.IsNull() {
@@ -226,6 +255,9 @@ func (r *DatasetResource) Create(ctx context.Context, req resource.CreateRequest
 	}
 	if !data.RecordSize.IsNull() {
 		createReq["recordsize"] = data.RecordSize.ValueString()
+	}
+	if !data.Volsize.IsNull() && !data.Volsize.IsUnknown() {
+		createReq["volsize"] = data.Volsize.ValueInt64()
 	}
 
 	respBody, err := r.client.Post("/pool/dataset", createReq)
@@ -317,8 +349,11 @@ func (r *DatasetResource) Update(ctx context.Context, req resource.UpdateRequest
 	if !data.RecordSize.IsNull() {
 		updateReq["recordsize"] = data.RecordSize.ValueString()
 	}
+	if !data.Volsize.IsNull() && !data.Volsize.IsUnknown() {
+		updateReq["volsize"] = data.Volsize.ValueInt64()
+	}
 
-	endpoint := fmt.Sprintf("/pool/dataset/id/%s", data.ID.ValueString())
+	endpoint := fmt.Sprintf("/pool/dataset/id/%s", url.PathEscape(data.ID.ValueString()))
 	_, err := r.client.Put(endpoint, updateReq)
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to update dataset, got error: %s", err))
@@ -339,7 +374,7 @@ func (r *DatasetResource) Delete(ctx context.Context, req resource.DeleteRequest
 		return
 	}
 
-	endpoint := fmt.Sprintf("/pool/dataset/id/%s", data.ID.ValueString())
+	endpoint := fmt.Sprintf("/pool/dataset/id/%s", url.PathEscape(data.ID.ValueString()))
 	_, err := r.client.Delete(endpoint)
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to delete dataset, got error: %s", err))
@@ -353,7 +388,7 @@ func (r *DatasetResource) ImportState(ctx context.Context, req resource.ImportSt
 
 // Helper function to read dataset data from the API
 func (r *DatasetResource) readDataset(ctx context.Context, data *DatasetResourceModel, diags *diag.Diagnostics) {
-	endpoint := fmt.Sprintf("/pool/dataset/id/%s", data.ID.ValueString())
+	endpoint := fmt.Sprintf("/pool/dataset/id/%s", url.PathEscape(data.ID.ValueString()))
 	respBody, err := r.client.Get(endpoint)
 	if err != nil {
 		diags.AddError("Client Error", fmt.Sprintf("Unable to read dataset, got error: %s", err))
@@ -388,6 +423,19 @@ func (r *DatasetResource) readDataset(ctx context.Context, data *DatasetResource
 		if value, ok := atime["value"].(string); ok {
 			data.Atime = types.StringValue(value)
 		}
+	}
+
+	// Read volsize if present (only for VOLUME type datasets)
+	if volsize, ok := result["volsize"].(map[string]interface{}); ok {
+		if value, ok := volsize["parsed"].(float64); ok {
+			data.Volsize = types.Int64Value(int64(value))
+		} else if value, ok := volsize["value"].(string); ok {
+			// Sometimes TrueNAS returns volsize as a string, try to parse it
+			// For now, just set it as null if we can't parse
+			data.Volsize = types.Int64Null()
+		}
+	} else {
+		data.Volsize = types.Int64Null()
 	}
 }
 

@@ -56,7 +56,7 @@ terraform {
 }
 
 provider "truenas" {
-  base_url = "http://10.0.0.213:81"  # Replace with your TrueNAS IP
+  base_url = "http://10.0.0.83:81"  # Replace with your TrueNAS IP
   api_key  = "your-api-key-here"      # Replace with your API key
 }
 
@@ -119,7 +119,7 @@ Type `yes` when prompted to confirm.
 Instead of hardcoding credentials in your Terraform files, you can use environment variables:
 
 ```bash
-export TRUENAS_BASE_URL="http://10.0.0.213:81"
+export TRUENAS_BASE_URL="http://10.0.0.83:81"
 export TRUENAS_API_KEY="your-api-key-here"
 ```
 

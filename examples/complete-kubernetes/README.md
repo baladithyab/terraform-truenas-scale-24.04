@@ -36,7 +36,7 @@ This example demonstrates a complete Kubernetes application stack on TrueNAS Sca
 Create `terraform.tfvars`:
 
 ```hcl
-truenas_base_url = "http://10.0.0.213:81"
+truenas_base_url = "http://10.0.0.83:81"
 truenas_api_key  = "your-api-key-here"
 pool_name        = "tank"
 timezone         = "America/New_York"

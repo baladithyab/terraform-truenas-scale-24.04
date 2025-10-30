@@ -14,6 +14,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Certificate management
 - Cron job management
 
+## [0.2.1] - 2025-10-30
+
+### Added
+- **`volsize` attribute for `truenas_dataset` resource** 🎉
+  - Support for VOLUME type datasets (zvols)
+  - Required for creating VM disks and iSCSI extents
+  - Specified in bytes (e.g., 107374182400 for 100GB)
+  - Validation ensures `volsize` is only used with VOLUME type
+  - Validation ensures VOLUME type always has `volsize`
+
+### Fixed
+- VOLUME datasets can now be created via Terraform (previously required manual creation or workarounds)
+- Clear error messages when `volsize` is missing for VOLUME or incorrectly used with FILESYSTEM
+
+### Documentation
+- Updated `examples/resources/truenas_dataset/resource.tf` with VOLUME example
+- Added `test-volsize/` directory with comprehensive test cases
+- Updated provider documentation with volsize usage examples
+
+### Technical Details
+- Added `Volsize types.Int64` field to `DatasetResourceModel`
+- Added volsize to Create, Read, and Update operations
+- Added validation in Create method to enforce type-specific requirements
+- Updated readDataset helper to parse volsize from API responses
+
 ## [0.2.0] - 2025-10-26
 
 ### Fixed

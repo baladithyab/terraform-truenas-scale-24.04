@@ -51,7 +51,7 @@ terraform {
 }
 
 provider "truenas" {
-  base_url = "http://10.0.0.213:81"
+  base_url = "http://10.0.0.83:81"
   api_key  = var.truenas_api_key
 }
 
@@ -198,11 +198,11 @@ TrueNAS provides a backup API that creates Helm backups + snapshots:
 curl -X POST \
   -H "Authorization: Bearer $API_KEY" \
   -H "Content-Type: application/json" \
-  http://10.0.0.213:81/api/v2.0/kubernetes/backup_chart_releases
+  http://10.0.0.83:81/api/v2.0/kubernetes/backup_chart_releases
 
 # List backups
 curl -H "Authorization: Bearer $API_KEY" \
-  http://10.0.0.213:81/api/v2.0/kubernetes/list_backups
+  http://10.0.0.83:81/api/v2.0/kubernetes/list_backups
 ```
 
 ### Method C: Export to Standard Kubernetes YAML
@@ -212,7 +212,7 @@ For migration to external Kubernetes, export the Helm values and create standard
 ```bash
 # Get current chart release configuration
 curl -H "Authorization: Bearer $API_KEY" \
-  http://10.0.0.213:81/api/v2.0/chart/release/id/plex | \
+  http://10.0.0.83:81/api/v2.0/chart/release/id/plex | \
   jq '.config' > plex-values.json
 
 # Convert to standard Kubernetes manifests

@@ -210,7 +210,7 @@ terraform-truenas-scale-24.04/
 ### Provider Configuration
 
 The provider accepts two configuration parameters:
-- `base_url` - TrueNAS server URL (e.g., http://10.0.0.213:81)
+- `base_url` - TrueNAS server URL (e.g., http://10.0.0.83:81)
 - `api_key` - TrueNAS API authentication key
 
 Both can be set via environment variables:
@@ -273,7 +273,7 @@ terraform {
 }
 
 provider "truenas" {
-  base_url = "http://10.0.0.213:81"
+  base_url = "http://10.0.0.83:81"
   api_key  = var.truenas_api_key
 }
 

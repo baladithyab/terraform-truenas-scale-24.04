@@ -36,7 +36,7 @@ First, understand the TrueNAS API endpoint you want to implement:
 
 ```bash
 # Download the OpenAPI spec
-curl http://10.0.0.213:81/api/v2.0 > openapi.json
+curl http://10.0.0.83:81/api/v2.0 > openapi.json
 
 # Find your endpoint
 cat openapi.json | jq '.paths | keys[] | select(contains("your_endpoint"))'

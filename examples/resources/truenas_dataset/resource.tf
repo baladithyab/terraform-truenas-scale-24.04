@@ -19,6 +19,15 @@ resource "truenas_dataset" "media" {
   copies      = 1
 }
 
+# Create a VOLUME dataset (zvol) for VM disk
+resource "truenas_dataset" "vm_disk" {
+  name        = "tank/vms/vm01-disk0"
+  type        = "VOLUME"
+  volsize     = 107374182400 # 100GB in bytes
+  compression = "LZ4"
+  comments    = "VM disk for vm01"
+}
+
 # Import an existing dataset
 # terraform import truenas_dataset.existing tank/existing-dataset
 

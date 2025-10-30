@@ -7,7 +7,7 @@
 set -e
 
 # Configuration
-TRUENAS_URL="${TRUENAS_BASE_URL:-http://10.0.0.213:81}"
+TRUENAS_URL="${TRUENAS_BASE_URL:-http://10.0.0.83:81}"
 API_KEY="${TRUENAS_API_KEY}"
 OUTPUT_DIR="${OUTPUT_DIR:-./migration-export}"
 

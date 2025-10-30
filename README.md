@@ -76,7 +76,7 @@ terraform {
 }
 
 provider "truenas" {
-  base_url = "http://10.0.0.213:81"
+  base_url = "http://10.0.0.83:81"
   api_key  = var.truenas_api_key
 }
 ```
@@ -141,7 +141,7 @@ terraform {
 
 ```hcl
 provider "truenas" {
-  base_url = "http://10.0.0.213:81"  # Your TrueNAS server URL (with or without port)
+  base_url = "http://10.0.0.83:81"  # Your TrueNAS server URL (with or without port)
   api_key  = "your-api-key-here"      # Your TrueNAS API key
 }
 ```
@@ -151,7 +151,7 @@ provider "truenas" {
 You can also configure the provider using environment variables:
 
 ```bash
-export TRUENAS_BASE_URL="http://10.0.0.213:81"
+export TRUENAS_BASE_URL="http://10.0.0.83:81"
 export TRUENAS_API_KEY="your-api-key-here"
 ```
 
