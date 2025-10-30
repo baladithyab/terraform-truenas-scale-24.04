@@ -14,6 +14,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Certificate management
 - Cron job management
 
+## [0.2.9] - 2025-10-30
+
+### Fixed
+- **Critical Fix**: NFS share Read() function now properly reads all properties from TrueNAS API
+  - **Root Cause**: v0.2.8 Read() only read 4 properties (path, comment, enabled, ro), causing "unknown values" errors
+  - **Impact**: NFS shares created successfully but Terraform reported inconsistent state after apply
+  - **Solution**: Completely rewrote Read() function to parse ALL NFS share properties:
+    - `id` - Share identifier
+    - `path` - Share path
+    - `comment` - Share comment
+    - `enabled` - Share enabled status
+    - `ro` (readonly) - Read-only status
+    - `networks` - Authorized networks list
+    - `hosts` - Authorized hosts list (defaults to empty array)
+    - `security` - Security mechanisms list (defaults to empty array)
+    - `maproot_user` - Root user mapping
+    - `mapall_user` - All users mapping
+
+### Technical Details
+- **Files Changed**:
+  - `internal/provider/resource_nfs_share.go` - Completely rewrote readNFSShare() function
+- **Key Changes**:
+  - Parse all list properties (networks, hosts, security) from API response
+  - Default `hosts` and `security` to empty lists (not null) to match Create behavior
+  - Handle null values for optional string properties (comment, maproot_user, mapall_user)
+  - Convert API response types correctly (float64 for ID, []interface{} for lists)
+
+### Backward Compatibility
+- ✅ No breaking changes
+- ✅ All v0.2.8 configurations will work in v0.2.9
+- ✅ Fixes critical state tracking issue for NFS shares
+
 ## [0.2.8] - 2025-10-30
 
 ### Fixed

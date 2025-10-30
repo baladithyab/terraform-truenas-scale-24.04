@@ -301,17 +301,103 @@ func (r *NFSShareResource) readNFSShare(ctx context.Context, data *NFSShareResou
 		return
 	}
 
+	// Read ID
+	if id, ok := result["id"].(float64); ok {
+		data.ID = types.StringValue(strconv.Itoa(int(id)))
+	}
+
+	// Read path
 	if path, ok := result["path"].(string); ok {
 		data.Path = types.StringValue(path)
 	}
+
+	// Read comment
 	if comment, ok := result["comment"].(string); ok {
 		data.Comment = types.StringValue(comment)
+	} else {
+		data.Comment = types.StringNull()
 	}
+
+	// Read enabled
 	if enabled, ok := result["enabled"].(bool); ok {
 		data.Enabled = types.BoolValue(enabled)
 	}
+
+	// Read readonly
 	if ro, ok := result["ro"].(bool); ok {
 		data.ReadOnly = types.BoolValue(ro)
+	}
+
+	// Read networks list
+	if networks, ok := result["networks"].([]interface{}); ok && len(networks) > 0 {
+		networkList := make([]string, len(networks))
+		for i, network := range networks {
+			if networkStr, ok := network.(string); ok {
+				networkList[i] = networkStr
+			}
+		}
+		networkValues := make([]types.String, len(networkList))
+		for i, network := range networkList {
+			networkValues[i] = types.StringValue(network)
+		}
+		listValue, _ := types.ListValueFrom(ctx, types.StringType, networkValues)
+		data.Networks = listValue
+	} else {
+		data.Networks = types.ListNull(types.StringType)
+	}
+
+	// Read hosts list
+	if hosts, ok := result["hosts"].([]interface{}); ok && len(hosts) > 0 {
+		hostList := make([]string, len(hosts))
+		for i, host := range hosts {
+			if hostStr, ok := host.(string); ok {
+				hostList[i] = hostStr
+			}
+		}
+		hostValues := make([]types.String, len(hostList))
+		for i, host := range hostList {
+			hostValues[i] = types.StringValue(host)
+		}
+		listValue, _ := types.ListValueFrom(ctx, types.StringType, hostValues)
+		data.Hosts = listValue
+	} else {
+		// Default to empty list instead of null to match Create behavior
+		emptyList, _ := types.ListValueFrom(ctx, types.StringType, []types.String{})
+		data.Hosts = emptyList
+	}
+
+	// Read security list
+	if security, ok := result["security"].([]interface{}); ok && len(security) > 0 {
+		securityList := make([]string, len(security))
+		for i, sec := range security {
+			if secStr, ok := sec.(string); ok {
+				securityList[i] = secStr
+			}
+		}
+		securityValues := make([]types.String, len(securityList))
+		for i, sec := range securityList {
+			securityValues[i] = types.StringValue(sec)
+		}
+		listValue, _ := types.ListValueFrom(ctx, types.StringType, securityValues)
+		data.Security = listValue
+	} else {
+		// Default to empty list instead of null to match Create behavior
+		emptyList, _ := types.ListValueFrom(ctx, types.StringType, []types.String{})
+		data.Security = emptyList
+	}
+
+	// Read maproot_user
+	if maproot, ok := result["maproot_user"].(string); ok && maproot != "" {
+		data.Maproot = types.StringValue(maproot)
+	} else {
+		data.Maproot = types.StringNull()
+	}
+
+	// Read mapall_user
+	if mapall, ok := result["mapall_user"].(string); ok && mapall != "" {
+		data.Mapall = types.StringValue(mapall)
+	} else {
+		data.Mapall = types.StringNull()
 	}
 }
 
