@@ -197,7 +197,8 @@ func (r *DatasetResource) Create(ctx context.Context, req resource.CreateRequest
 		return
 	}
 
-	if datasetType == "FILESYSTEM" && !data.Volsize.IsNull() {
+	// Fix Bug 1: Check both IsNull() and IsUnknown() to prevent false positives
+	if datasetType == "FILESYSTEM" && !data.Volsize.IsNull() && !data.Volsize.IsUnknown() {
 		resp.Diagnostics.AddError(
 			"Invalid Attribute",
 			"volsize is not valid for FILESYSTEM type datasets. Remove the volsize attribute or change type to VOLUME.",
@@ -211,53 +212,60 @@ func (r *DatasetResource) Create(ctx context.Context, req resource.CreateRequest
 		"type": datasetType,
 	}
 
-	if !data.Type.IsNull() {
-		createReq["type"] = data.Type.ValueString()
-	}
+	// Properties valid for BOTH FILESYSTEM and VOLUME
 	if !data.Comments.IsNull() {
 		createReq["comments"] = data.Comments.ValueString()
 	}
-	if !data.Compression.IsNull() {
-		createReq["compression"] = data.Compression.ValueString()
+
+	// Fix Bug 2: Only send VOLUME-specific properties for VOLUME datasets
+	if datasetType == "VOLUME" {
+		if !data.Volsize.IsNull() && !data.Volsize.IsUnknown() {
+			createReq["volsize"] = data.Volsize.ValueInt64()
+		}
+		// Note: Most properties like compression, atime, etc. are not valid for VOLUME in TrueNAS Scale 24.04
 	}
-	if !data.Atime.IsNull() {
-		createReq["atime"] = data.Atime.ValueString()
-	}
-	if !data.Quota.IsNull() {
-		createReq["quota"] = data.Quota.ValueInt64()
-	}
-	if !data.RefQuota.IsNull() {
-		createReq["refquota"] = data.RefQuota.ValueInt64()
-	}
-	if !data.Reservation.IsNull() {
-		createReq["reservation"] = data.Reservation.ValueInt64()
-	}
-	if !data.RefReserv.IsNull() {
-		createReq["refreservation"] = data.RefReserv.ValueInt64()
-	}
-	if !data.Dedup.IsNull() {
-		createReq["deduplication"] = data.Dedup.ValueString()
-	}
-	if !data.ReadOnly.IsNull() {
-		createReq["readonly"] = data.ReadOnly.ValueString()
-	}
-	if !data.Exec.IsNull() {
-		createReq["exec"] = data.Exec.ValueString()
-	}
-	if !data.Sync.IsNull() {
-		createReq["sync"] = data.Sync.ValueString()
-	}
-	if !data.SnapDir.IsNull() {
-		createReq["snapdir"] = data.SnapDir.ValueString()
-	}
-	if !data.Copies.IsNull() {
-		createReq["copies"] = data.Copies.ValueInt64()
-	}
-	if !data.RecordSize.IsNull() {
-		createReq["recordsize"] = data.RecordSize.ValueString()
-	}
-	if !data.Volsize.IsNull() && !data.Volsize.IsUnknown() {
-		createReq["volsize"] = data.Volsize.ValueInt64()
+
+	// Fix Bug 2: Only send FILESYSTEM-specific properties for FILESYSTEM datasets
+	if datasetType == "FILESYSTEM" {
+		if !data.Compression.IsNull() {
+			createReq["compression"] = data.Compression.ValueString()
+		}
+		if !data.Atime.IsNull() {
+			createReq["atime"] = data.Atime.ValueString()
+		}
+		if !data.Quota.IsNull() {
+			createReq["quota"] = data.Quota.ValueInt64()
+		}
+		if !data.RefQuota.IsNull() {
+			createReq["refquota"] = data.RefQuota.ValueInt64()
+		}
+		if !data.Reservation.IsNull() {
+			createReq["reservation"] = data.Reservation.ValueInt64()
+		}
+		if !data.RefReserv.IsNull() {
+			createReq["refreservation"] = data.RefReserv.ValueInt64()
+		}
+		if !data.Dedup.IsNull() {
+			createReq["deduplication"] = data.Dedup.ValueString()
+		}
+		if !data.ReadOnly.IsNull() {
+			createReq["readonly"] = data.ReadOnly.ValueString()
+		}
+		if !data.Exec.IsNull() {
+			createReq["exec"] = data.Exec.ValueString()
+		}
+		if !data.Sync.IsNull() {
+			createReq["sync"] = data.Sync.ValueString()
+		}
+		if !data.SnapDir.IsNull() {
+			createReq["snapdir"] = data.SnapDir.ValueString()
+		}
+		if !data.Copies.IsNull() {
+			createReq["copies"] = data.Copies.ValueInt64()
+		}
+		if !data.RecordSize.IsNull() {
+			createReq["recordsize"] = data.RecordSize.ValueString()
+		}
 	}
 
 	respBody, err := r.client.Post("/pool/dataset", createReq)
@@ -304,53 +312,68 @@ func (r *DatasetResource) Update(ctx context.Context, req resource.UpdateRequest
 		return
 	}
 
+	// Determine dataset type for conditional property updates
+	datasetType := "FILESYSTEM"
+	if !data.Type.IsNull() {
+		datasetType = data.Type.ValueString()
+	}
+
 	// Build the update request body
 	updateReq := make(map[string]interface{})
 
+	// Properties valid for BOTH FILESYSTEM and VOLUME
 	if !data.Comments.IsNull() {
 		updateReq["comments"] = data.Comments.ValueString()
 	}
-	if !data.Compression.IsNull() {
-		updateReq["compression"] = data.Compression.ValueString()
+
+	// Fix Bug 2: Only send VOLUME-specific properties for VOLUME datasets
+	if datasetType == "VOLUME" {
+		if !data.Volsize.IsNull() && !data.Volsize.IsUnknown() {
+			updateReq["volsize"] = data.Volsize.ValueInt64()
+		}
 	}
-	if !data.Atime.IsNull() {
-		updateReq["atime"] = data.Atime.ValueString()
-	}
-	if !data.Quota.IsNull() {
-		updateReq["quota"] = data.Quota.ValueInt64()
-	}
-	if !data.RefQuota.IsNull() {
-		updateReq["refquota"] = data.RefQuota.ValueInt64()
-	}
-	if !data.Reservation.IsNull() {
-		updateReq["reservation"] = data.Reservation.ValueInt64()
-	}
-	if !data.RefReserv.IsNull() {
-		updateReq["refreservation"] = data.RefReserv.ValueInt64()
-	}
-	if !data.Dedup.IsNull() {
-		updateReq["deduplication"] = data.Dedup.ValueString()
-	}
-	if !data.ReadOnly.IsNull() {
-		updateReq["readonly"] = data.ReadOnly.ValueString()
-	}
-	if !data.Exec.IsNull() {
-		updateReq["exec"] = data.Exec.ValueString()
-	}
-	if !data.Sync.IsNull() {
-		updateReq["sync"] = data.Sync.ValueString()
-	}
-	if !data.SnapDir.IsNull() {
-		updateReq["snapdir"] = data.SnapDir.ValueString()
-	}
-	if !data.Copies.IsNull() {
-		updateReq["copies"] = data.Copies.ValueInt64()
-	}
-	if !data.RecordSize.IsNull() {
-		updateReq["recordsize"] = data.RecordSize.ValueString()
-	}
-	if !data.Volsize.IsNull() && !data.Volsize.IsUnknown() {
-		updateReq["volsize"] = data.Volsize.ValueInt64()
+
+	// Fix Bug 2: Only send FILESYSTEM-specific properties for FILESYSTEM datasets
+	if datasetType == "FILESYSTEM" {
+		if !data.Compression.IsNull() {
+			updateReq["compression"] = data.Compression.ValueString()
+		}
+		if !data.Atime.IsNull() {
+			updateReq["atime"] = data.Atime.ValueString()
+		}
+		if !data.Quota.IsNull() {
+			updateReq["quota"] = data.Quota.ValueInt64()
+		}
+		if !data.RefQuota.IsNull() {
+			updateReq["refquota"] = data.RefQuota.ValueInt64()
+		}
+		if !data.Reservation.IsNull() {
+			updateReq["reservation"] = data.Reservation.ValueInt64()
+		}
+		if !data.RefReserv.IsNull() {
+			updateReq["refreservation"] = data.RefReserv.ValueInt64()
+		}
+		if !data.Dedup.IsNull() {
+			updateReq["deduplication"] = data.Dedup.ValueString()
+		}
+		if !data.ReadOnly.IsNull() {
+			updateReq["readonly"] = data.ReadOnly.ValueString()
+		}
+		if !data.Exec.IsNull() {
+			updateReq["exec"] = data.Exec.ValueString()
+		}
+		if !data.Sync.IsNull() {
+			updateReq["sync"] = data.Sync.ValueString()
+		}
+		if !data.SnapDir.IsNull() {
+			updateReq["snapdir"] = data.SnapDir.ValueString()
+		}
+		if !data.Copies.IsNull() {
+			updateReq["copies"] = data.Copies.ValueInt64()
+		}
+		if !data.RecordSize.IsNull() {
+			updateReq["recordsize"] = data.RecordSize.ValueString()
+		}
 	}
 
 	endpoint := fmt.Sprintf("/pool/dataset/id/%s", url.PathEscape(data.ID.ValueString()))

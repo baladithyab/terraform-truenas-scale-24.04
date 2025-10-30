@@ -14,6 +14,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Certificate management
 - Cron job management
 
+## [0.2.2] - 2025-10-30
+
+### Fixed
+- **Bug Fix #1**: Fixed false positive validation error when creating FILESYSTEM datasets
+  - The provider was incorrectly detecting `volsize` on FILESYSTEM datasets even when not specified
+  - Root cause: `volsize` has `Computed: true` in schema, causing `IsNull()` to return false for computed values
+  - Solution: Added `!IsUnknown()` check in addition to `!IsNull()` in validation logic (line 200)
+  - Impact: FILESYSTEM datasets can now be created without spurious "volsize is not valid" errors
+
+- **Bug Fix #2**: Fixed API 422 errors when creating VOLUME datasets
+  - The provider was sending FILESYSTEM-only properties (compression, atime, deduplication, exec, readonly, sync, snapdir, recordsize, quota, etc.) to VOLUME datasets
+  - TrueNAS Scale 24.04 API rejects these properties for VOLUME type datasets with 422 Unprocessable Entity
+  - Solution: Implemented conditional property sending based on dataset type
+  - VOLUME datasets now only send: `name`, `type`, `volsize`, `comments`
+  - FILESYSTEM datasets send all applicable properties
+  - Applied same conditional logic to both `Create()` and `Update()` functions
+  - Impact: VOLUME datasets can now be created successfully via Terraform
+
+### Technical Details
+- Modified validation in `Create()` to check both `IsNull()` and `IsUnknown()` (line 200)
+- Refactored `Create()` to conditionally send properties based on dataset type (lines 209-269)
+- Refactored `Update()` to conditionally send properties based on dataset type (lines 307-377)
+- No schema changes required
+- Fully backward compatible with v0.2.1 configurations
+
+### Testing
+- ✅ Build succeeds without errors
+- ✅ FILESYSTEM datasets create without validation errors
+- ✅ VOLUME datasets create without API 422 errors
+- ✅ Both dataset types work correctly
+
 ## [0.2.1] - 2025-10-30
 
 ### Added
