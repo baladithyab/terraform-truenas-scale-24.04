@@ -14,6 +14,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Certificate management
 - Cron job management
 
+## [0.2.14] - 2025-10-31
+
+### Added
+- **Boot Order Control**: Device boot order can now be explicitly configured
+  - **New Attribute**: `order` field for all device types (nic_devices, disk_devices, cdrom_devices)
+  - **Features**:
+    - Control which device boots first (lower order = boots first)
+    - Useful for OS installation (boot from CDROM first, then disk)
+    - Useful for Talos Linux (boot from ISO for install, then disk for operation)
+    - Default behavior: auto-incrementing order starting at 1000 if not specified
+  - **Use Cases**:
+    - Install OS from ISO: CDROM order=1, Disk order=2
+    - Normal operation: Disk order=1, CDROM order=2
+    - Multi-disk systems: Specify boot priority for each disk
+  - **Example**:
+    ```hcl
+    resource "truenas_vm" "talos_worker" {
+      name = "talosworker01"
+
+      # Boot from ISO FIRST for installation
+      cdrom_devices = [{
+        path  = "/mnt/pool/isos/talos.iso"
+        order = 1  # Boots FIRST
+      }]
+
+      # Boot from disk SECOND (after OS is installed)
+      disk_devices = [{
+        path  = "/dev/zvol/pool/vms/disk0"
+        order = 2  # Boots SECOND
+      }]
+    }
+    ```
+
+### Fixed
+- **Boot Order Bug**: Previously, devices were always ordered by type (NICs, then disks, then CDROMs) regardless of user configuration. Now the `order` field is properly respected and passed to TrueNAS API, which maps to libvirt's `<boot order='X'/>` attribute.
+
+### Documentation
+- Added `examples/vm-boot-order/` directory with comprehensive boot order examples
+- Added README with detailed boot order configuration guide
+- Documented common use cases: OS installation, Talos Linux, multi-disk systems
+
 ## [0.2.13] - 2025-10-31
 
 ### Added

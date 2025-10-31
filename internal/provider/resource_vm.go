@@ -57,6 +57,7 @@ type NICDeviceModel struct {
 	MAC                  types.String `tfsdk:"mac"`
 	NICAttach            types.String `tfsdk:"nic_attach"`
 	TrustGuestRxFilters  types.Bool   `tfsdk:"trust_guest_rx_filters"`
+	Order                types.Int64  `tfsdk:"order"`
 }
 
 type DiskDeviceModel struct {
@@ -65,10 +66,12 @@ type DiskDeviceModel struct {
 	IOType              types.String `tfsdk:"iotype"`
 	PhysicalSectorSize  types.Int64  `tfsdk:"physical_sectorsize"`
 	LogicalSectorSize   types.Int64  `tfsdk:"logical_sectorsize"`
+	Order               types.Int64  `tfsdk:"order"`
 }
 
 type CDROMDeviceModel struct {
-	Path types.String `tfsdk:"path"`
+	Path  types.String `tfsdk:"path"`
+	Order types.Int64  `tfsdk:"order"`
 }
 
 func (r *VMResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -191,6 +194,11 @@ func (r *VMResource) Schema(ctx context.Context, req resource.SchemaRequest, res
 							Optional:            true,
 							Computed:            true,
 						},
+						"order": schema.Int64Attribute{
+							MarkdownDescription: "Boot order for this device. Lower values boot first. If not specified, devices are ordered by type (NICs, then disks, then CDROMs)",
+							Optional:            true,
+							Computed:            true,
+						},
 					},
 				},
 			},
@@ -223,6 +231,11 @@ func (r *VMResource) Schema(ctx context.Context, req resource.SchemaRequest, res
 							Optional:            true,
 							Computed:            true,
 						},
+						"order": schema.Int64Attribute{
+							MarkdownDescription: "Boot order for this device. Lower values boot first. If not specified, devices are ordered by type (NICs, then disks, then CDROMs)",
+							Optional:            true,
+							Computed:            true,
+						},
 					},
 				},
 			},
@@ -234,6 +247,11 @@ func (r *VMResource) Schema(ctx context.Context, req resource.SchemaRequest, res
 						"path": schema.StringAttribute{
 							MarkdownDescription: "Path to ISO file (e.g., /mnt/pool/isos/ubuntu.iso)",
 							Required:            true,
+						},
+						"order": schema.Int64Attribute{
+							MarkdownDescription: "Boot order for this device. Lower values boot first. If not specified, devices are ordered by type (NICs, then disks, then CDROMs)",
+							Optional:            true,
+							Computed:            true,
 						},
 					},
 				},
@@ -587,6 +605,12 @@ func (r *VMResource) readVM(ctx context.Context, data *VMResourceModel, diags *d
 					} else {
 						nic.TrustGuestRxFilters = types.BoolNull()
 					}
+					// Read order from device level (not attributes)
+					if order, ok := deviceMap["order"].(float64); ok {
+						nic.Order = types.Int64Value(int64(order))
+					} else {
+						nic.Order = types.Int64Null()
+					}
 					nics = append(nics, nic)
 
 				case "DISK":
@@ -616,6 +640,12 @@ func (r *VMResource) readVM(ctx context.Context, data *VMResourceModel, diags *d
 					} else {
 						disk.LogicalSectorSize = types.Int64Null()
 					}
+					// Read order from device level (not attributes)
+					if order, ok := deviceMap["order"].(float64); ok {
+						disk.Order = types.Int64Value(int64(order))
+					} else {
+						disk.Order = types.Int64Null()
+					}
 					disks = append(disks, disk)
 
 				case "CDROM":
@@ -624,6 +654,12 @@ func (r *VMResource) readVM(ctx context.Context, data *VMResourceModel, diags *d
 						cdrom.Path = types.StringValue(path)
 					} else {
 						cdrom.Path = types.StringNull()
+					}
+					// Read order from device level (not attributes)
+					if order, ok := deviceMap["order"].(float64); ok {
+						cdrom.Order = types.Int64Value(int64(order))
+					} else {
+						cdrom.Order = types.Int64Null()
 					}
 					cdroms = append(cdroms, cdrom)
 				}
@@ -651,6 +687,7 @@ func (r *VMResource) readVM(ctx context.Context, data *VMResourceModel, diags *d
 				"mac":                     types.StringType,
 				"nic_attach":              types.StringType,
 				"trust_guest_rx_filters":  types.BoolType,
+				"order":                   types.Int64Type,
 			},
 		}, nics)
 		if diagErr.HasError() {
@@ -665,6 +702,7 @@ func (r *VMResource) readVM(ctx context.Context, data *VMResourceModel, diags *d
 				"mac":                     types.StringType,
 				"nic_attach":              types.StringType,
 				"trust_guest_rx_filters":  types.BoolType,
+				"order":                   types.Int64Type,
 			},
 		})
 	}
@@ -677,6 +715,7 @@ func (r *VMResource) readVM(ctx context.Context, data *VMResourceModel, diags *d
 				"iotype":                types.StringType,
 				"physical_sectorsize":   types.Int64Type,
 				"logical_sectorsize":    types.Int64Type,
+				"order":                 types.Int64Type,
 			},
 		}, disks)
 		if diagErr.HasError() {
@@ -692,6 +731,7 @@ func (r *VMResource) readVM(ctx context.Context, data *VMResourceModel, diags *d
 				"iotype":                types.StringType,
 				"physical_sectorsize":   types.Int64Type,
 				"logical_sectorsize":    types.Int64Type,
+				"order":                 types.Int64Type,
 			},
 		})
 	}
@@ -699,7 +739,8 @@ func (r *VMResource) readVM(ctx context.Context, data *VMResourceModel, diags *d
 	if len(cdroms) > 0 {
 		cdromList, diagErr := types.ListValueFrom(ctx, types.ObjectType{
 			AttrTypes: map[string]attr.Type{
-				"path": types.StringType,
+				"path":  types.StringType,
+				"order": types.Int64Type,
 			},
 		}, cdroms)
 		if diagErr.HasError() {
@@ -710,7 +751,8 @@ func (r *VMResource) readVM(ctx context.Context, data *VMResourceModel, diags *d
 	} else {
 		data.CDROMDevices = types.ListNull(types.ObjectType{
 			AttrTypes: map[string]attr.Type{
-				"path": types.StringType,
+				"path":  types.StringType,
+				"order": types.Int64Type,
 			},
 		})
 	}
@@ -731,10 +773,16 @@ func (r *VMResource) createDevices(ctx context.Context, data *VMResourceModel, d
 		}
 
 		for _, nic := range nics {
+			// Use user-specified order if provided, otherwise use auto-incrementing order
+			order := deviceOrder
+			if !nic.Order.IsNull() && nic.Order.ValueInt64() > 0 {
+				order = int(nic.Order.ValueInt64())
+			}
+
 			deviceReq := map[string]interface{}{
 				"vm":    vmID,
 				"dtype": "NIC",
-				"order": deviceOrder,
+				"order": order,
 				"attributes": map[string]interface{}{
 					"nic_attach": nic.NICAttach.ValueString(),
 				},
@@ -776,10 +824,16 @@ func (r *VMResource) createDevices(ctx context.Context, data *VMResourceModel, d
 		}
 
 		for _, disk := range disks {
+			// Use user-specified order if provided, otherwise use auto-incrementing order
+			order := deviceOrder
+			if !disk.Order.IsNull() && disk.Order.ValueInt64() > 0 {
+				order = int(disk.Order.ValueInt64())
+			}
+
 			deviceReq := map[string]interface{}{
 				"vm":    vmID,
 				"dtype": "DISK",
-				"order": deviceOrder,
+				"order": order,
 				"attributes": map[string]interface{}{
 					"path": disk.Path.ValueString(),
 				},
@@ -823,10 +877,16 @@ func (r *VMResource) createDevices(ctx context.Context, data *VMResourceModel, d
 		}
 
 		for _, cdrom := range cdroms {
+			// Use user-specified order if provided, otherwise use auto-incrementing order
+			order := deviceOrder
+			if !cdrom.Order.IsNull() && cdrom.Order.ValueInt64() > 0 {
+				order = int(cdrom.Order.ValueInt64())
+			}
+
 			deviceReq := map[string]interface{}{
 				"vm":    vmID,
 				"dtype": "CDROM",
-				"order": deviceOrder,
+				"order": order,
 				"attributes": map[string]interface{}{
 					"path": cdrom.Path.ValueString(),
 				},
