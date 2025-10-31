@@ -1,0 +1,7 @@
+# SSH Configuration for Guest Agent Queries
+# Copy this file to terraform.tfvars and fill in your values
+
+truenas_host = "YOUR_TRUENAS_IP"  # e.g., "10.0.0.83"
+ssh_user     = "root"
+ssh_key_path = "~/.ssh/id_rsa"
+

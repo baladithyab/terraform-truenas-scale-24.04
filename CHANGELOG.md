@@ -14,6 +14,69 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Certificate management
 - Cron job management
 
+## [0.2.12] - 2025-10-31
+
+### Added
+- **VM MAC Address Export**: VM resource now exports MAC addresses from all NIC devices
+  - **New Attribute**: `mac_addresses` (computed list of strings)
+  - **Use Case**: Look up DHCP leases, configure static IPs for Talos, network inventory
+  - **Works For**: ALL VMs (including Talos which doesn't support guest agent)
+  - **Example**: `output "macs" { value = truenas_vm.example.mac_addresses }`
+
+- **VM Guest Agent Data Source**: New `truenas_vm_guest_info` data source for querying QEMU guest agent
+  - **Attributes**: `ip_addresses`, `hostname`, `os_name`, `os_version`
+  - **Requirements**: QEMU guest agent installed in VM, SSH access to TrueNAS host
+  - **Use Case**: Automatic IP discovery for VMs with guest agent (Ubuntu, Debian, etc.)
+  - **Example**: `data "truenas_vm_guest_info" "ubuntu" { vm_name = "ubuntu-vm" ... }`
+
+### Technical Details
+- **Files Changed**:
+  - `internal/provider/resource_vm.go` - Added `mac_addresses` computed attribute
+  - `internal/provider/datasource_vm_guest_info.go` - New data source for guest agent queries
+  - `internal/provider/provider.go` - Registered new data source
+- **Implementation**:
+  - MAC addresses: Read from VM devices array, filter NIC devices, extract MAC attribute
+  - Guest agent: SSH to TrueNAS host, run `virsh qemu-agent-command`, parse JSON response
+- **API Limitation**: TrueNAS API doesn't expose IP addresses or guest agent data, hence SSH approach
+
+### Use Case: Talos Kubernetes
+```hcl
+# Query existing VMs to see what IPs are in use
+data "truenas_vm_guest_info" "ubuntu" {
+  vm_name      = "ubuntu-vm"
+  truenas_host = "10.0.0.83"
+  ssh_user     = "root"
+  ssh_key_path = "~/.ssh/id_rsa"
+}
+
+# Create Talos VMs and get MAC addresses
+resource "truenas_vm" "talos_worker" {
+  name   = "talos-worker-01"
+  memory = 4096
+  vcpus  = 2
+}
+
+output "talos_macs" {
+  value = truenas_vm.talos_worker.mac_addresses
+}
+
+# Use existing IPs to avoid conflicts when configuring Talos static IPs
+locals {
+  existing_ips = data.truenas_vm_guest_info.ubuntu.ip_addresses
+  talos_ips    = ["10.0.0.111", "10.0.0.112", "10.0.0.113"]
+}
+```
+
+### Examples
+- New `examples/vm-ip-discovery/` directory with complete examples
+- New `examples/data-sources/truenas_vm_guest_info/` with data source examples
+
+### Backward Compatibility
+- ✅ No breaking changes
+- ✅ All v0.2.11 configurations will work in v0.2.12
+- ✅ New attributes are computed (read-only)
+- ✅ New data source is optional
+
 ## [0.2.11] - 2025-10-30
 
 ### Added

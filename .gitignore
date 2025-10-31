@@ -36,3 +36,6 @@ website.test
 dist/
 terraform-provider-truenas
 
+# Release binaries
+terraform-provider-truenas_v*
+*_SHA256SUMS

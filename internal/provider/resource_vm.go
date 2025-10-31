@@ -45,6 +45,7 @@ type VMResourceModel struct {
 	ArchType      types.String `tfsdk:"arch_type"`
 	Time          types.String `tfsdk:"time"`
 	Status        types.String `tfsdk:"status"`
+	MACAddresses  types.List   `tfsdk:"mac_addresses"`
 }
 
 func (r *VMResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -137,6 +138,11 @@ func (r *VMResource) Schema(ctx context.Context, req resource.SchemaRequest, res
 			"status": schema.StringAttribute{
 				MarkdownDescription: "Current VM status",
 				Computed:            true,
+			},
+			"mac_addresses": schema.ListAttribute{
+				MarkdownDescription: "List of MAC addresses for all NIC devices attached to this VM",
+				Computed:            true,
+				ElementType:         types.StringType,
 			},
 		},
 	}
@@ -443,6 +449,37 @@ func (r *VMResource) readVM(ctx context.Context, data *VMResourceModel, diags *d
 		if state, ok := status["state"].(string); ok {
 			data.Status = types.StringValue(state)
 		}
+	}
+
+	// Read MAC addresses from NIC devices
+	macAddresses := []string{}
+	if devices, ok := result["devices"].([]interface{}); ok {
+		for _, device := range devices {
+			if deviceMap, ok := device.(map[string]interface{}); ok {
+				// Check if this is a NIC device
+				if dtype, ok := deviceMap["dtype"].(string); ok && dtype == "NIC" {
+					// Get the attributes
+					if attributes, ok := deviceMap["attributes"].(map[string]interface{}); ok {
+						// Get MAC address (may be null if auto-generated)
+						if mac, ok := attributes["mac"].(string); ok && mac != "" {
+							macAddresses = append(macAddresses, mac)
+						}
+					}
+				}
+			}
+		}
+	}
+
+	// Convert MAC addresses to types.List
+	if len(macAddresses) > 0 {
+		macList, diagErr := types.ListValueFrom(ctx, types.StringType, macAddresses)
+		if diagErr.HasError() {
+			diags.Append(diagErr...)
+		} else {
+			data.MACAddresses = macList
+		}
+	} else {
+		data.MACAddresses = types.ListNull(types.StringType)
 	}
 }
 
