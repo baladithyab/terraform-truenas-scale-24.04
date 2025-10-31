@@ -14,6 +14,59 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Certificate management
 - Cron job management
 
+## [0.2.13] - 2025-10-31
+
+### Added
+- **VM Device Configuration**: VMs can now be created with network interfaces, disks, and CDROM devices
+  - **New Attributes**:
+    - `nic_devices` - List of network interface devices (VIRTIO, E1000, etc.)
+    - `disk_devices` - List of disk devices (VIRTIO, AHCI, etc.)
+    - `cdrom_devices` - List of CDROM devices for ISO mounting
+  - **Features**:
+    - Auto-generation of MAC addresses (leave `mac` empty)
+    - Support for multiple NICs, disks, and CDROMs per VM
+    - Full control over device types and attributes
+    - Devices are automatically created during VM creation
+    - Devices are automatically read and populated in state
+  - **Use Cases**:
+    - Create fully functional VMs with network connectivity
+    - Attach zvol-based disks for VM storage
+    - Mount ISO files for OS installation
+    - Configure Talos Linux worker nodes with proper networking
+  - **Example**:
+    ```hcl
+    resource "truenas_vm" "example" {
+      name   = "myvm"
+      memory = 4096
+      vcpus  = 2
+
+      nic_devices = [{
+        type       = "VIRTIO"
+        nic_attach = "eno1"
+      }]
+
+      disk_devices = [{
+        path = "/dev/zvol/pool/vms/myvm-disk0"
+        type = "VIRTIO"
+      }]
+
+      cdrom_devices = [{
+        path = "/mnt/pool/isos/ubuntu.iso"
+      }]
+    }
+    ```
+
+### Fixed
+- VMs created without devices now properly support device configuration
+- Device reading now correctly populates all device types in state
+- MAC addresses are properly exported even when auto-generated (null in API)
+
+### Documentation
+- Added comprehensive `examples/vm-with-devices/` with README
+- Documented all device types and their attributes
+- Added troubleshooting guide for common device issues
+- Included Talos Linux worker node example
+
 ## [0.2.12] - 2025-10-31
 
 ### Added

@@ -33,6 +33,10 @@ website.test
 # Keep the example terraform files
 !examples/**/*.tf
 
+# Exclude terraform.tfvars files (may contain credentials)
+terraform.tfvars
+*.auto.tfvars
+
 dist/
 terraform-provider-truenas
 

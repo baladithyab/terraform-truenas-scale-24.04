@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -46,6 +47,28 @@ type VMResourceModel struct {
 	Time          types.String `tfsdk:"time"`
 	Status        types.String `tfsdk:"status"`
 	MACAddresses  types.List   `tfsdk:"mac_addresses"`
+	NICDevices    types.List   `tfsdk:"nic_devices"`
+	DiskDevices   types.List   `tfsdk:"disk_devices"`
+	CDROMDevices  types.List   `tfsdk:"cdrom_devices"`
+}
+
+type NICDeviceModel struct {
+	Type                 types.String `tfsdk:"type"`
+	MAC                  types.String `tfsdk:"mac"`
+	NICAttach            types.String `tfsdk:"nic_attach"`
+	TrustGuestRxFilters  types.Bool   `tfsdk:"trust_guest_rx_filters"`
+}
+
+type DiskDeviceModel struct {
+	Path                types.String `tfsdk:"path"`
+	Type                types.String `tfsdk:"type"`
+	IOType              types.String `tfsdk:"iotype"`
+	PhysicalSectorSize  types.Int64  `tfsdk:"physical_sectorsize"`
+	LogicalSectorSize   types.Int64  `tfsdk:"logical_sectorsize"`
+}
+
+type CDROMDeviceModel struct {
+	Path types.String `tfsdk:"path"`
 }
 
 func (r *VMResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -144,6 +167,77 @@ func (r *VMResource) Schema(ctx context.Context, req resource.SchemaRequest, res
 				Computed:            true,
 				ElementType:         types.StringType,
 			},
+			"nic_devices": schema.ListNestedAttribute{
+				MarkdownDescription: "Network interface devices to attach to the VM",
+				Optional:            true,
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"type": schema.StringAttribute{
+							MarkdownDescription: "NIC type (VIRTIO, E1000, etc.). Default: VIRTIO",
+							Optional:            true,
+							Computed:            true,
+						},
+						"mac": schema.StringAttribute{
+							MarkdownDescription: "MAC address (leave empty for auto-generation)",
+							Optional:            true,
+							Computed:            true,
+						},
+						"nic_attach": schema.StringAttribute{
+							MarkdownDescription: "Physical network interface to attach to (e.g., eno1, br0)",
+							Required:            true,
+						},
+						"trust_guest_rx_filters": schema.BoolAttribute{
+							MarkdownDescription: "Trust guest RX filters. Default: false",
+							Optional:            true,
+							Computed:            true,
+						},
+					},
+				},
+			},
+			"disk_devices": schema.ListNestedAttribute{
+				MarkdownDescription: "Disk devices to attach to the VM",
+				Optional:            true,
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"path": schema.StringAttribute{
+							MarkdownDescription: "Path to disk (e.g., /dev/zvol/pool/vm-disk0)",
+							Required:            true,
+						},
+						"type": schema.StringAttribute{
+							MarkdownDescription: "Disk type (VIRTIO, AHCI, etc.). Default: VIRTIO",
+							Optional:            true,
+							Computed:            true,
+						},
+						"iotype": schema.StringAttribute{
+							MarkdownDescription: "IO type (THREADS, NATIVE). Default: THREADS",
+							Optional:            true,
+							Computed:            true,
+						},
+						"physical_sectorsize": schema.Int64Attribute{
+							MarkdownDescription: "Physical sector size in bytes",
+							Optional:            true,
+							Computed:            true,
+						},
+						"logical_sectorsize": schema.Int64Attribute{
+							MarkdownDescription: "Logical sector size in bytes",
+							Optional:            true,
+							Computed:            true,
+						},
+					},
+				},
+			},
+			"cdrom_devices": schema.ListNestedAttribute{
+				MarkdownDescription: "CD-ROM devices to attach to the VM",
+				Optional:            true,
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"path": schema.StringAttribute{
+							MarkdownDescription: "Path to ISO file (e.g., /mnt/pool/isos/ubuntu.iso)",
+							Required:            true,
+						},
+					},
+				},
+			},
 		},
 	}
 }
@@ -236,6 +330,12 @@ func (r *VMResource) Create(ctx context.Context, req resource.CreateRequest, res
 
 	if id, ok := result["id"].(float64); ok {
 		data.ID = types.StringValue(strconv.Itoa(int(id)))
+	}
+
+	// Create devices after VM creation
+	r.createDevices(ctx, &data, &resp.Diagnostics)
+	if resp.Diagnostics.HasError() {
+		return
 	}
 
 	// Start VM if start_on_create is true
@@ -451,20 +551,81 @@ func (r *VMResource) readVM(ctx context.Context, data *VMResourceModel, diags *d
 		}
 	}
 
-	// Read MAC addresses from NIC devices
+	// Read devices from API response
 	macAddresses := []string{}
+	var nics []NICDeviceModel
+	var disks []DiskDeviceModel
+	var cdroms []CDROMDeviceModel
+
 	if devices, ok := result["devices"].([]interface{}); ok {
 		for _, device := range devices {
 			if deviceMap, ok := device.(map[string]interface{}); ok {
-				// Check if this is a NIC device
-				if dtype, ok := deviceMap["dtype"].(string); ok && dtype == "NIC" {
-					// Get the attributes
-					if attributes, ok := deviceMap["attributes"].(map[string]interface{}); ok {
-						// Get MAC address (may be null if auto-generated)
-						if mac, ok := attributes["mac"].(string); ok && mac != "" {
-							macAddresses = append(macAddresses, mac)
-						}
+				dtype, _ := deviceMap["dtype"].(string)
+				attributes, _ := deviceMap["attributes"].(map[string]interface{})
+
+				switch dtype {
+				case "NIC":
+					nic := NICDeviceModel{}
+					if nicType, ok := attributes["type"].(string); ok {
+						nic.Type = types.StringValue(nicType)
+					} else {
+						nic.Type = types.StringNull()
 					}
+					if mac, ok := attributes["mac"].(string); ok && mac != "" {
+						nic.MAC = types.StringValue(mac)
+						macAddresses = append(macAddresses, mac)
+					} else {
+						nic.MAC = types.StringNull()
+					}
+					if nicAttach, ok := attributes["nic_attach"].(string); ok {
+						nic.NICAttach = types.StringValue(nicAttach)
+					} else {
+						nic.NICAttach = types.StringNull()
+					}
+					if trustRx, ok := attributes["trust_guest_rx_filters"].(bool); ok {
+						nic.TrustGuestRxFilters = types.BoolValue(trustRx)
+					} else {
+						nic.TrustGuestRxFilters = types.BoolNull()
+					}
+					nics = append(nics, nic)
+
+				case "DISK":
+					disk := DiskDeviceModel{}
+					if path, ok := attributes["path"].(string); ok {
+						disk.Path = types.StringValue(path)
+					} else {
+						disk.Path = types.StringNull()
+					}
+					if diskType, ok := attributes["type"].(string); ok {
+						disk.Type = types.StringValue(diskType)
+					} else {
+						disk.Type = types.StringNull()
+					}
+					if iotype, ok := attributes["iotype"].(string); ok {
+						disk.IOType = types.StringValue(iotype)
+					} else {
+						disk.IOType = types.StringNull()
+					}
+					if physSector, ok := attributes["physical_sectorsize"].(float64); ok {
+						disk.PhysicalSectorSize = types.Int64Value(int64(physSector))
+					} else {
+						disk.PhysicalSectorSize = types.Int64Null()
+					}
+					if logSector, ok := attributes["logical_sectorsize"].(float64); ok {
+						disk.LogicalSectorSize = types.Int64Value(int64(logSector))
+					} else {
+						disk.LogicalSectorSize = types.Int64Null()
+					}
+					disks = append(disks, disk)
+
+				case "CDROM":
+					cdrom := CDROMDeviceModel{}
+					if path, ok := attributes["path"].(string); ok {
+						cdrom.Path = types.StringValue(path)
+					} else {
+						cdrom.Path = types.StringNull()
+					}
+					cdroms = append(cdroms, cdrom)
 				}
 			}
 		}
@@ -480,6 +641,204 @@ func (r *VMResource) readVM(ctx context.Context, data *VMResourceModel, diags *d
 		}
 	} else {
 		data.MACAddresses = types.ListNull(types.StringType)
+	}
+
+	// Convert device lists to types.List
+	if len(nics) > 0 {
+		nicList, diagErr := types.ListValueFrom(ctx, types.ObjectType{
+			AttrTypes: map[string]attr.Type{
+				"type":                    types.StringType,
+				"mac":                     types.StringType,
+				"nic_attach":              types.StringType,
+				"trust_guest_rx_filters":  types.BoolType,
+			},
+		}, nics)
+		if diagErr.HasError() {
+			diags.Append(diagErr...)
+		} else {
+			data.NICDevices = nicList
+		}
+	} else {
+		data.NICDevices = types.ListNull(types.ObjectType{
+			AttrTypes: map[string]attr.Type{
+				"type":                    types.StringType,
+				"mac":                     types.StringType,
+				"nic_attach":              types.StringType,
+				"trust_guest_rx_filters":  types.BoolType,
+			},
+		})
+	}
+
+	if len(disks) > 0 {
+		diskList, diagErr := types.ListValueFrom(ctx, types.ObjectType{
+			AttrTypes: map[string]attr.Type{
+				"path":                  types.StringType,
+				"type":                  types.StringType,
+				"iotype":                types.StringType,
+				"physical_sectorsize":   types.Int64Type,
+				"logical_sectorsize":    types.Int64Type,
+			},
+		}, disks)
+		if diagErr.HasError() {
+			diags.Append(diagErr...)
+		} else {
+			data.DiskDevices = diskList
+		}
+	} else {
+		data.DiskDevices = types.ListNull(types.ObjectType{
+			AttrTypes: map[string]attr.Type{
+				"path":                  types.StringType,
+				"type":                  types.StringType,
+				"iotype":                types.StringType,
+				"physical_sectorsize":   types.Int64Type,
+				"logical_sectorsize":    types.Int64Type,
+			},
+		})
+	}
+
+	if len(cdroms) > 0 {
+		cdromList, diagErr := types.ListValueFrom(ctx, types.ObjectType{
+			AttrTypes: map[string]attr.Type{
+				"path": types.StringType,
+			},
+		}, cdroms)
+		if diagErr.HasError() {
+			diags.Append(diagErr...)
+		} else {
+			data.CDROMDevices = cdromList
+		}
+	} else {
+		data.CDROMDevices = types.ListNull(types.ObjectType{
+			AttrTypes: map[string]attr.Type{
+				"path": types.StringType,
+			},
+		})
+	}
+}
+
+// createDevices creates NIC, disk, and CDROM devices for a VM
+func (r *VMResource) createDevices(ctx context.Context, data *VMResourceModel, diags *diag.Diagnostics) {
+	vmID := data.ID.ValueString()
+	deviceOrder := 1000 // Starting order for devices
+
+	// Create NIC devices
+	if !data.NICDevices.IsNull() && !data.NICDevices.IsUnknown() {
+		var nics []NICDeviceModel
+		diagErr := data.NICDevices.ElementsAs(ctx, &nics, false)
+		if diagErr.HasError() {
+			diags.Append(diagErr...)
+			return
+		}
+
+		for _, nic := range nics {
+			deviceReq := map[string]interface{}{
+				"vm":    vmID,
+				"dtype": "NIC",
+				"order": deviceOrder,
+				"attributes": map[string]interface{}{
+					"nic_attach": nic.NICAttach.ValueString(),
+				},
+			}
+
+			// Add optional NIC attributes
+			if !nic.Type.IsNull() && nic.Type.ValueString() != "" {
+				deviceReq["attributes"].(map[string]interface{})["type"] = nic.Type.ValueString()
+			} else {
+				deviceReq["attributes"].(map[string]interface{})["type"] = "VIRTIO"
+			}
+
+			if !nic.MAC.IsNull() && nic.MAC.ValueString() != "" {
+				deviceReq["attributes"].(map[string]interface{})["mac"] = nic.MAC.ValueString()
+			}
+
+			if !nic.TrustGuestRxFilters.IsNull() {
+				deviceReq["attributes"].(map[string]interface{})["trust_guest_rx_filters"] = nic.TrustGuestRxFilters.ValueBool()
+			} else {
+				deviceReq["attributes"].(map[string]interface{})["trust_guest_rx_filters"] = false
+			}
+
+			_, err := r.client.Post("/vm/device", deviceReq)
+			if err != nil {
+				diags.AddError("Device Creation Error", fmt.Sprintf("Unable to create NIC device: %s", err))
+				return
+			}
+			deviceOrder++
+		}
+	}
+
+	// Create Disk devices
+	if !data.DiskDevices.IsNull() && !data.DiskDevices.IsUnknown() {
+		var disks []DiskDeviceModel
+		diagErr := data.DiskDevices.ElementsAs(ctx, &disks, false)
+		if diagErr.HasError() {
+			diags.Append(diagErr...)
+			return
+		}
+
+		for _, disk := range disks {
+			deviceReq := map[string]interface{}{
+				"vm":    vmID,
+				"dtype": "DISK",
+				"order": deviceOrder,
+				"attributes": map[string]interface{}{
+					"path": disk.Path.ValueString(),
+				},
+			}
+
+			// Add optional disk attributes
+			if !disk.Type.IsNull() && disk.Type.ValueString() != "" {
+				deviceReq["attributes"].(map[string]interface{})["type"] = disk.Type.ValueString()
+			} else {
+				deviceReq["attributes"].(map[string]interface{})["type"] = "VIRTIO"
+			}
+
+			if !disk.IOType.IsNull() && disk.IOType.ValueString() != "" {
+				deviceReq["attributes"].(map[string]interface{})["iotype"] = disk.IOType.ValueString()
+			}
+
+			if !disk.PhysicalSectorSize.IsNull() && disk.PhysicalSectorSize.ValueInt64() > 0 {
+				deviceReq["attributes"].(map[string]interface{})["physical_sectorsize"] = disk.PhysicalSectorSize.ValueInt64()
+			}
+
+			if !disk.LogicalSectorSize.IsNull() && disk.LogicalSectorSize.ValueInt64() > 0 {
+				deviceReq["attributes"].(map[string]interface{})["logical_sectorsize"] = disk.LogicalSectorSize.ValueInt64()
+			}
+
+			_, err := r.client.Post("/vm/device", deviceReq)
+			if err != nil {
+				diags.AddError("Device Creation Error", fmt.Sprintf("Unable to create disk device: %s", err))
+				return
+			}
+			deviceOrder++
+		}
+	}
+
+	// Create CDROM devices
+	if !data.CDROMDevices.IsNull() && !data.CDROMDevices.IsUnknown() {
+		var cdroms []CDROMDeviceModel
+		diagErr := data.CDROMDevices.ElementsAs(ctx, &cdroms, false)
+		if diagErr.HasError() {
+			diags.Append(diagErr...)
+			return
+		}
+
+		for _, cdrom := range cdroms {
+			deviceReq := map[string]interface{}{
+				"vm":    vmID,
+				"dtype": "CDROM",
+				"order": deviceOrder,
+				"attributes": map[string]interface{}{
+					"path": cdrom.Path.ValueString(),
+				},
+			}
+
+			_, err := r.client.Post("/vm/device", deviceReq)
+			if err != nil {
+				diags.AddError("Device Creation Error", fmt.Sprintf("Unable to create CDROM device: %s", err))
+				return
+			}
+			deviceOrder++
+		}
 	}
 }
 

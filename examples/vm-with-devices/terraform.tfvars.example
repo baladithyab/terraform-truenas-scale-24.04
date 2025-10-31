@@ -1,0 +1,5 @@
+# Copy this file to terraform.tfvars and fill in your values
+
+truenas_base_url = "http://YOUR_TRUENAS_IP"
+truenas_api_key  = "YOUR_API_KEY"
+
