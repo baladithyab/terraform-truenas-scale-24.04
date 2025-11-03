@@ -14,6 +14,146 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Certificate management
 - Cron job management
 
+## [0.2.15] - 2025-11-03
+
+### Added
+
+#### Resource Discovery Data Sources
+- **`truenas_nfs_shares`**: List all NFS shares with filtering
+  - Returns share paths, comments, enabled status, and full configuration
+  - Useful for generating Kubernetes NFS StorageClass configs
+  - Example: `data.truenas_nfs_shares.all.shares`
+
+- **`truenas_smb_shares`**: List all SMB/CIFS shares with filtering
+  - Returns share names, paths, comments, and configuration
+  - Useful for inventory and dynamic configuration
+  - Example: `data.truenas_smb_shares.all.shares`
+
+- **`truenas_vms`**: List all VMs with status and configuration
+  - Returns VM names, IDs, status, resources (CPU/memory), and settings
+  - Useful for monitoring and resource discovery
+  - Example: `data.truenas_vms.all.vms`
+
+- **`truenas_vm`**: Query specific VM by name or ID
+  - Accepts either `name` or `id` parameter
+  - Returns complete VM configuration
+  - Example: `data.truenas_vm.my_vm.status`
+
+#### GPU/PCI Passthrough Support
+- **`truenas_gpu_pci_choices`**: Discover available GPUs and their PCI addresses
+  - Returns list of GPU devices with PCI slot addresses
+  - Example: `data.truenas_gpu_pci_choices.gpus.choices`
+
+- **`truenas_vm_pci_passthrough_devices`**: List available PCI passthrough devices
+  - Returns devices with IOMMU group information
+  - Includes device descriptions and capabilities
+  - Example: `data.truenas_vm_pci_passthrough_devices.devices.devices`
+
+- **`truenas_vm_iommu_enabled`**: Check if IOMMU is enabled on the system
+  - Returns boolean indicating IOMMU status
+  - Example: `data.truenas_vm_iommu_enabled.check.enabled`
+
+- **VM Resource Enhancements**:
+  - `pci_devices` - Attach PCI passthrough devices (GPUs, network cards, etc.)
+  - `hide_from_msr` - Hide KVM hypervisor from MSR (useful for NVIDIA GPU passthrough)
+  - `ensure_display_device` - Control virtual display device (set false for GPU passthrough)
+  - **Example**:
+    ```hcl
+    resource "truenas_vm" "gpu_vm" {
+      name = "ml-workstation"
+      pci_devices = [{
+        pci_slot = "0000:01:00.0"
+      }]
+      hide_from_msr = true
+      ensure_display_device = false
+    }
+    ```
+
+#### Enhanced Dataset Deletion
+- **`force_destroy`**: Force delete dataset even if busy or has snapshots
+- **`recursive_destroy`**: Recursively delete child datasets
+- **Features**:
+  - Automatically deletes snapshots before dataset deletion
+  - Eliminates "dataset is busy" errors
+  - No more null_resource workarounds for cleanup
+  - **Example**:
+    ```hcl
+    resource "truenas_dataset" "vm_storage" {
+      name = "tank/vms/storage"
+      force_destroy = true
+      recursive_destroy = true
+    }
+    ```
+
+#### Pool Data Source Enhancement
+- **Pool data source** now accepts both names and numeric IDs
+  - Before: Only `name = "tank"` worked
+  - After: Both `name = "tank"` and `id = 1` work
+  - **Example**:
+    ```hcl
+    data "truenas_pool" "by_name" {
+      name = "tank"
+    }
+    data "truenas_pool" "by_id" {
+      id = 1
+    }
+    ```
+
+#### VM IP Discovery Enhancement
+- **Password Authentication for Guest Info**: `truenas_vm_guest_info` data source now supports password-based SSH authentication
+  - **New Attribute**: `ssh_password` (Optional, Sensitive)
+  - Supports both SSH key and password authentication
+  - Uses `sshpass` for password authentication
+  - Maintains backward compatibility with key-based auth
+  - **Example**:
+    ```hcl
+    data "truenas_vm_guest_info" "talos" {
+      vm_name      = "talos-vm"
+      truenas_host = "10.0.0.83"
+      ssh_user     = "root"
+      ssh_password = var.truenas_ssh_password  # New!
+    }
+
+    output "vm_ip" {
+      value = data.truenas_vm_guest_info.talos.ip_addresses[0]
+    }
+    ```
+
+#### New Examples
+- **`examples/data-sources-discovery`**: Demonstrates all new data sources
+  - NFS/SMB share discovery
+  - VM listing and filtering
+  - Practical Kubernetes integration examples
+
+- **`examples/vm-gpu-passthrough`**: Complete GPU passthrough example
+  - GPU discovery and selection
+  - VM configuration for GPU passthrough
+  - IOMMU verification
+  - Comprehensive documentation
+
+- **Updated `examples/vm-ip-discovery`**: Enhanced with password authentication
+  - Shows both SSH key and password methods
+  - Talos Linux guest agent support documented
+  - Step-by-step troubleshooting guide
+
+### Changed
+- **Client**: Added `DeleteWithBody` method for TrueNAS DELETE endpoints requiring JSON body
+- **Documentation**: Updated all examples to use provider version `~> 0.2.15`
+- **Examples**: Standardized provider source across all examples
+
+### Fixed
+- **Schema Validation**: Fixed `force_destroy` and `recursive_destroy` attributes
+  - Now properly marked as `Computed: true` (required when using `Default` values)
+  - Resolves Terraform plugin framework validation error
+
+### Technical Details
+- Resource discovery eliminates HTTP data source workarounds
+- GPU passthrough eliminates null_resource workarounds for PCI devices
+- Dataset deletion uses new DeleteWithBody client method
+- Guest info data source builds SSH command dynamically based on auth method
+- Password auth uses: `sshpass -p 'password' ssh ...`
+- Key auth uses: `ssh -i keypath ...`
+
 ## [0.2.14] - 2025-10-31
 
 ### Added

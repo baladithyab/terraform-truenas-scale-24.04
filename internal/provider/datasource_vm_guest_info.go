@@ -25,6 +25,7 @@ type VMGuestInfoDataSourceModel struct {
 	TrueNASHost  types.String `tfsdk:"truenas_host"`
 	SSHUser      types.String `tfsdk:"ssh_user"`
 	SSHKeyPath   types.String `tfsdk:"ssh_key_path"`
+	SSHPassword  types.String `tfsdk:"ssh_password"`
 	IPAddresses  types.List   `tfsdk:"ip_addresses"`
 	Hostname     types.String `tfsdk:"hostname"`
 	OSName       types.String `tfsdk:"os_name"`
@@ -42,12 +43,12 @@ func (d *VMGuestInfoDataSource) Schema(ctx context.Context, req datasource.Schem
 **Requirements:**
 - QEMU Guest Agent must be installed and running in the VM
 - SSH access to the TrueNAS host
-- SSH key-based authentication configured
+- SSH key-based authentication OR password authentication
 
 **Note:** This data source queries the TrueNAS host directly via SSH to run virsh commands.
 It does not use the TrueNAS API because the API does not expose guest agent information.
 
-**Example Usage:**
+**Example Usage (with SSH key):**
 
 ` + "```hcl" + `
 data "truenas_vm_guest_info" "ubuntu" {
@@ -59,6 +60,17 @@ data "truenas_vm_guest_info" "ubuntu" {
 
 output "ubuntu_ips" {
   value = data.truenas_vm_guest_info.ubuntu.ip_addresses
+}
+` + "```" + `
+
+**Example Usage (with password):**
+
+` + "```hcl" + `
+data "truenas_vm_guest_info" "talos" {
+  vm_name      = "talos-vm"
+  truenas_host = "10.0.0.83"
+  ssh_user     = "root"
+  ssh_password = var.truenas_ssh_password
 }
 ` + "```",
 		Attributes: map[string]schema.Attribute{
@@ -75,8 +87,13 @@ output "ubuntu_ips" {
 				Optional:            true,
 			},
 			"ssh_key_path": schema.StringAttribute{
-				MarkdownDescription: "Path to SSH private key for authentication (default: ~/.ssh/id_rsa)",
+				MarkdownDescription: "Path to SSH private key for authentication (default: ~/.ssh/id_rsa). Either ssh_key_path or ssh_password must be provided.",
 				Optional:            true,
+			},
+			"ssh_password": schema.StringAttribute{
+				MarkdownDescription: "SSH password for authentication. Either ssh_key_path or ssh_password must be provided.",
+				Optional:            true,
+				Sensitive:           true,
 			},
 			"ip_addresses": schema.ListAttribute{
 				MarkdownDescription: "List of IP addresses reported by the guest agent",
@@ -113,18 +130,34 @@ func (d *VMGuestInfoDataSource) Read(ctx context.Context, req datasource.ReadReq
 		sshUser = data.SSHUser.ValueString()
 	}
 
-	sshKeyPath := "~/.ssh/id_rsa"
-	if !data.SSHKeyPath.IsNull() {
-		sshKeyPath = data.SSHKeyPath.ValueString()
-	}
-
 	vmName := data.VMName.ValueString()
 	trueNASHost := data.TrueNASHost.ValueString()
 
+	// Build SSH command based on authentication method
+	var sshCmd string
+	if !data.SSHPassword.IsNull() && data.SSHPassword.ValueString() != "" {
+		// Use password authentication with sshpass
+		sshPassword := data.SSHPassword.ValueString()
+		sshCmd = fmt.Sprintf(
+			`sshpass -p '%s' ssh -o StrictHostKeyChecking=no %s@%s`,
+			sshPassword, sshUser, trueNASHost,
+		)
+	} else {
+		// Use key-based authentication
+		sshKeyPath := "~/.ssh/id_rsa"
+		if !data.SSHKeyPath.IsNull() {
+			sshKeyPath = data.SSHKeyPath.ValueString()
+		}
+		sshCmd = fmt.Sprintf(
+			`ssh -i %s -o StrictHostKeyChecking=no %s@%s`,
+			sshKeyPath, sshUser, trueNASHost,
+		)
+	}
+
 	// Query guest agent for network interfaces
 	networkCmd := fmt.Sprintf(
-		`ssh -i %s -o StrictHostKeyChecking=no %s@%s "virsh qemu-agent-command %s '{\"execute\":\"guest-network-get-interfaces\"}'"`,
-		sshKeyPath, sshUser, trueNASHost, vmName,
+		`%s "virsh qemu-agent-command %s '{\"execute\":\"guest-network-get-interfaces\"}'"`,
+		sshCmd, vmName,
 	)
 
 	output, err := exec.Command("sh", "-c", networkCmd).Output()
@@ -193,8 +226,8 @@ func (d *VMGuestInfoDataSource) Read(ctx context.Context, req datasource.ReadReq
 
 	// Query guest agent for OS info
 	osInfoCmd := fmt.Sprintf(
-		`ssh -i %s -o StrictHostKeyChecking=no %s@%s "virsh qemu-agent-command %s '{\"execute\":\"guest-get-osinfo\"}'"`,
-		sshKeyPath, sshUser, trueNASHost, vmName,
+		`%s "virsh qemu-agent-command %s '{\"execute\":\"guest-get-osinfo\"}'"`,
+		sshCmd, vmName,
 	)
 
 	osOutput, err := exec.Command("sh", "-c", osInfoCmd).Output()
@@ -222,8 +255,8 @@ func (d *VMGuestInfoDataSource) Read(ctx context.Context, req datasource.ReadReq
 
 	// Query for hostname
 	hostnameCmd := fmt.Sprintf(
-		`ssh -i %s -o StrictHostKeyChecking=no %s@%s "virsh qemu-agent-command %s '{\"execute\":\"guest-get-host-name\"}'"`,
-		sshKeyPath, sshUser, trueNASHost, vmName,
+		`%s "virsh qemu-agent-command %s '{\"execute\":\"guest-get-host-name\"}'"`,
+		sshCmd, vmName,
 	)
 
 	hostnameOutput, err := exec.Command("sh", "-c", hostnameCmd).Output()

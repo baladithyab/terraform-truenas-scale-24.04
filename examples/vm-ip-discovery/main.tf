@@ -2,7 +2,7 @@ terraform {
   required_providers {
     truenas = {
       source  = "terraform-providers/truenas"
-      version = "~> 0.2.14"
+      version = "~> 0.2.15"
     }
   }
 }
@@ -35,9 +35,16 @@ variable "ssh_user" {
 }
 
 variable "ssh_key_path" {
-  description = "Path to SSH private key for TrueNAS host"
+  description = "Path to SSH private key for TrueNAS host (optional if using password)"
   type        = string
   default     = "~/.ssh/id_rsa"
+}
+
+variable "ssh_password" {
+  description = "SSH password for TrueNAS host (optional if using key)"
+  type        = string
+  default     = ""
+  sensitive   = true
 }
 
 # ============================================================================
@@ -65,12 +72,20 @@ output "talos_worker_mac_addresses" {
 # Example 2: Query Guest Agent for IP Addresses (VMs with guest agent only)
 # ============================================================================
 
-# Query Ubuntu VM (has guest agent installed)
+# Query Ubuntu VM (has guest agent installed) - using SSH key
 data "truenas_vm_guest_info" "ubuntu" {
   vm_name      = "ubuntu-vm"
   truenas_host = var.truenas_host
   ssh_user     = var.ssh_user
   ssh_key_path = var.ssh_key_path
+}
+
+# Alternative: Query Talos VM using password authentication (v0.2.15+)
+data "truenas_vm_guest_info" "talos_with_password" {
+  vm_name      = "talos-demo"
+  truenas_host = var.truenas_host
+  ssh_user     = var.ssh_user
+  ssh_password = var.ssh_password # New in v0.2.15!
 }
 
 output "ubuntu_vm_info" {

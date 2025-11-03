@@ -77,7 +77,9 @@ Most routers show DHCP client list with MAC addresses and IPs
 
 ---
 
-## Method 2: Guest Agent Query
+## Method 2: Guest Agent Query (v0.2.15+)
+
+**New in v0.2.15**: Password authentication support!
 
 ### How It Works
 
@@ -94,10 +96,10 @@ Most routers show DHCP client list with MAC addresses and IPs
 
 ### Disadvantages
 
-❌ Requires QEMU guest agent installed in VM  
-❌ Requires SSH access to TrueNAS host  
-❌ Doesn't work for Talos (no guest agent support)  
-❌ More complex setup  
+❌ Requires QEMU guest agent installed in VM
+❌ Requires SSH access to TrueNAS host
+✅ **Now works with Talos!** (v1.11.3+ has built-in guest agent)
+❌ More complex setup
 
 ### Prerequisites
 
@@ -117,9 +119,14 @@ Most routers show DHCP client list with MAC addresses and IPs
    sudo pacman -S qemu-guest-agent
    sudo systemctl start qemu-guest-agent
    sudo systemctl enable qemu-guest-agent
+
+   # Talos Linux
+   # No installation needed - guest agent is built-in! ✅
    ```
 
 2. **SSH Access to TrueNAS Host**
+
+   **Option A: SSH Key (Recommended for production)**
    ```bash
    # Generate SSH key if you don't have one
    ssh-keygen -t rsa -b 4096 -f ~/.ssh/truenas_key
@@ -131,14 +138,35 @@ Most routers show DHCP client list with MAC addresses and IPs
    ssh -i ~/.ssh/truenas_key root@10.0.0.83 "virsh list --all"
    ```
 
+   **Option B: Password (New in v0.2.15, easier for testing)**
+   ```bash
+   # Install sshpass
+   sudo apt-get install sshpass  # Ubuntu/Debian
+   brew install hudochenkov/sshpass/sshpass  # macOS
+
+   # Test SSH access
+   sshpass -p 'your-password' ssh -o StrictHostKeyChecking=no root@10.0.0.83 "virsh list --all"
+   ```
+
 ### Example Usage
 
+**With SSH Key:**
 ```hcl
 data "truenas_vm_guest_info" "ubuntu" {
   vm_name      = "ubuntu-vm"
   truenas_host = "10.0.0.83"
   ssh_user     = "root"
   ssh_key_path = "~/.ssh/truenas_key"
+}
+```
+
+**With Password (v0.2.15+):**
+```hcl
+data "truenas_vm_guest_info" "talos" {
+  vm_name      = "talos-demo"
+  truenas_host = "10.0.0.83"
+  ssh_user     = "root"
+  ssh_password = var.truenas_ssh_password  # Sensitive!
 }
 
 output "ubuntu_ips" {
