@@ -145,6 +145,10 @@ func (p *TruenasProvider) DataSources(ctx context.Context) []func() datasource.D
 		NewGPUPCIChoicesDataSource,
 		NewVMPCIPassthroughDevicesDataSource,
 		NewVMIOMMUEnabledDataSource,
+		NewNFSSharesDataSource,
+		NewSMBSharesDataSource,
+		NewVMsDataSource,
+		NewVMDataSource,
 	}
 }
 
