@@ -165,11 +165,13 @@ func (r *DatasetResource) Schema(ctx context.Context, req resource.SchemaRequest
 				"force_destroy": schema.BoolAttribute{
 					MarkdownDescription: "Force destroy dataset by deleting snapshots and forcing busy dataset deletion",
 					Optional:            true,
+				Computed:            true,
 					Default:             booldefault.StaticBool(false),
 				},
 				"recursive_destroy": schema.BoolAttribute{
 					MarkdownDescription: "Recursively delete child datasets when destroying this dataset",
 					Optional:            true,
+				Computed:            true,
 					Default:             booldefault.StaticBool(false),
 				},
 
