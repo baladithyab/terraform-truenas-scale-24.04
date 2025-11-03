@@ -29,27 +29,30 @@ type VMResource struct {
 }
 
 type VMResourceModel struct {
-	ID            types.String `tfsdk:"id"`
-	Name          types.String `tfsdk:"name"`
-	Description   types.String `tfsdk:"description"`
-	VCPUs         types.Int64  `tfsdk:"vcpus"`
-	Cores         types.Int64  `tfsdk:"cores"`
-	Threads       types.Int64  `tfsdk:"threads"`
-	Memory        types.Int64  `tfsdk:"memory"`
-	MinMemory     types.Int64  `tfsdk:"min_memory"`
-	Autostart     types.Bool   `tfsdk:"autostart"`
-	StartOnCreate types.Bool   `tfsdk:"start_on_create"`
-	Bootloader    types.String `tfsdk:"bootloader"`
-	CPUMode       types.String `tfsdk:"cpu_mode"`
-	CPUModel      types.String `tfsdk:"cpu_model"`
-	MachineType   types.String `tfsdk:"machine_type"`
-	ArchType      types.String `tfsdk:"arch_type"`
-	Time          types.String `tfsdk:"time"`
-	Status        types.String `tfsdk:"status"`
-	MACAddresses  types.List   `tfsdk:"mac_addresses"`
-	NICDevices    types.List   `tfsdk:"nic_devices"`
-	DiskDevices   types.List   `tfsdk:"disk_devices"`
-	CDROMDevices  types.List   `tfsdk:"cdrom_devices"`
+	ID                  types.String `tfsdk:"id"`
+	Name                types.String `tfsdk:"name"`
+	Description         types.String `tfsdk:"description"`
+	VCPUs               types.Int64  `tfsdk:"vcpus"`
+	Cores               types.Int64  `tfsdk:"cores"`
+	Threads             types.Int64  `tfsdk:"threads"`
+	Memory              types.Int64  `tfsdk:"memory"`
+	MinMemory           types.Int64  `tfsdk:"min_memory"`
+	Autostart           types.Bool   `tfsdk:"autostart"`
+	StartOnCreate       types.Bool   `tfsdk:"start_on_create"`
+	Bootloader          types.String `tfsdk:"bootloader"`
+	CPUMode             types.String `tfsdk:"cpu_mode"`
+	CPUModel            types.String `tfsdk:"cpu_model"`
+	MachineType         types.String `tfsdk:"machine_type"`
+	ArchType            types.String `tfsdk:"arch_type"`
+	Time                types.String `tfsdk:"time"`
+	Status              types.String `tfsdk:"status"`
+	MACAddresses        types.List   `tfsdk:"mac_addresses"`
+	HideFromMSR         types.Bool   `tfsdk:"hide_from_msr"`
+	EnsureDisplayDevice types.Bool   `tfsdk:"ensure_display_device"`
+	NICDevices          types.List   `tfsdk:"nic_devices"`
+	DiskDevices         types.List   `tfsdk:"disk_devices"`
+	CDROMDevices        types.List   `tfsdk:"cdrom_devices"`
+	PCIDevices          types.List   `tfsdk:"pci_devices"`
 }
 
 type NICDeviceModel struct {
@@ -72,6 +75,11 @@ type DiskDeviceModel struct {
 type CDROMDeviceModel struct {
 	Path  types.String `tfsdk:"path"`
 	Order types.Int64  `tfsdk:"order"`
+}
+
+type PCIDeviceModel struct {
+	PPTDev types.String `tfsdk:"pptdev"`
+	Order  types.Int64  `tfsdk:"order"`
 }
 
 func (r *VMResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -256,6 +264,33 @@ func (r *VMResource) Schema(ctx context.Context, req resource.SchemaRequest, res
 					},
 				},
 			},
+			"pci_devices": schema.ListNestedAttribute{
+				MarkdownDescription: "PCI passthrough devices to attach to the VM (requires IOMMU enabled)",
+				Optional:            true,
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"pptdev": schema.StringAttribute{
+							MarkdownDescription: "PCI device ID to pass through (e.g., 'pci_0000_3b_00_0'). Use truenas_vm_pci_passthrough_devices data source to discover available devices.",
+							Required:            true,
+						},
+						"order": schema.Int64Attribute{
+							MarkdownDescription: "Boot order for this device. Lower values boot first.",
+							Optional:            true,
+							Computed:            true,
+						},
+					},
+				},
+			},
+			"hide_from_msr": schema.BoolAttribute{
+				MarkdownDescription: "Hide KVM hypervisor from MSR discovery. Useful for GPU passthrough to avoid detection. Default: false",
+				Optional:            true,
+				Computed:            true,
+			},
+			"ensure_display_device": schema.BoolAttribute{
+				MarkdownDescription: "Ensure a virtual display device is attached. Set to false when using GPU passthrough. Default: true",
+				Optional:            true,
+				Computed:            true,
+			},
 		},
 	}
 }
@@ -312,6 +347,12 @@ func (r *VMResource) Create(ctx context.Context, req resource.CreateRequest, res
 	// Handle optional boolean fields
 	if !data.Autostart.IsNull() {
 		createReq["autostart"] = data.Autostart.ValueBool()
+	}
+	if !data.HideFromMSR.IsNull() {
+		createReq["hide_from_msr"] = data.HideFromMSR.ValueBool()
+	}
+	if !data.EnsureDisplayDevice.IsNull() {
+		createReq["ensure_display_device"] = data.EnsureDisplayDevice.ValueBool()
 	}
 
 	// Handle optional string fields - only send if non-empty
@@ -520,6 +561,16 @@ func (r *VMResource) readVM(ctx context.Context, data *VMResourceModel, diags *d
 		data.Autostart = types.BoolValue(autostart)
 	}
 
+	// Read hide_from_msr
+	if hideFromMSR, ok := result["hide_from_msr"].(bool); ok {
+		data.HideFromMSR = types.BoolValue(hideFromMSR)
+	}
+
+	// Read ensure_display_device
+	if ensureDisplayDevice, ok := result["ensure_display_device"].(bool); ok {
+		data.EnsureDisplayDevice = types.BoolValue(ensureDisplayDevice)
+	}
+
 	// Read bootloader (optional)
 	if bootloader, ok := result["bootloader"].(string); ok && bootloader != "" {
 		data.Bootloader = types.StringValue(bootloader)
@@ -574,6 +625,7 @@ func (r *VMResource) readVM(ctx context.Context, data *VMResourceModel, diags *d
 	var nics []NICDeviceModel
 	var disks []DiskDeviceModel
 	var cdroms []CDROMDeviceModel
+	var pciDevices []PCIDeviceModel
 
 	if devices, ok := result["devices"].([]interface{}); ok {
 		for _, device := range devices {
@@ -662,6 +714,21 @@ func (r *VMResource) readVM(ctx context.Context, data *VMResourceModel, diags *d
 						cdrom.Order = types.Int64Null()
 					}
 					cdroms = append(cdroms, cdrom)
+
+				case "PCI":
+					pci := PCIDeviceModel{}
+					if pptdev, ok := attributes["pptdev"].(string); ok {
+						pci.PPTDev = types.StringValue(pptdev)
+					} else {
+						pci.PPTDev = types.StringNull()
+					}
+					// Read order from device level (not attributes)
+					if order, ok := deviceMap["order"].(float64); ok {
+						pci.Order = types.Int64Value(int64(order))
+					} else {
+						pci.Order = types.Int64Null()
+					}
+					pciDevices = append(pciDevices, pci)
 				}
 			}
 		}
@@ -753,6 +820,27 @@ func (r *VMResource) readVM(ctx context.Context, data *VMResourceModel, diags *d
 			AttrTypes: map[string]attr.Type{
 				"path":  types.StringType,
 				"order": types.Int64Type,
+			},
+		})
+	}
+
+	if len(pciDevices) > 0 {
+		pciList, diagErr := types.ListValueFrom(ctx, types.ObjectType{
+			AttrTypes: map[string]attr.Type{
+				"pptdev": types.StringType,
+				"order":  types.Int64Type,
+			},
+		}, pciDevices)
+		if diagErr.HasError() {
+			diags.Append(diagErr...)
+		} else {
+			data.PCIDevices = pciList
+		}
+	} else {
+		data.PCIDevices = types.ListNull(types.ObjectType{
+			AttrTypes: map[string]attr.Type{
+				"pptdev": types.StringType,
+				"order":  types.Int64Type,
 			},
 		})
 	}
@@ -895,6 +983,40 @@ func (r *VMResource) createDevices(ctx context.Context, data *VMResourceModel, d
 			_, err := r.client.Post("/vm/device", deviceReq)
 			if err != nil {
 				diags.AddError("Device Creation Error", fmt.Sprintf("Unable to create CDROM device: %s", err))
+				return
+			}
+			deviceOrder++
+		}
+	}
+
+	// Create PCI passthrough devices
+	if !data.PCIDevices.IsNull() && !data.PCIDevices.IsUnknown() {
+		var pciDevices []PCIDeviceModel
+		diagErr := data.PCIDevices.ElementsAs(ctx, &pciDevices, false)
+		if diagErr.HasError() {
+			diags.Append(diagErr...)
+			return
+		}
+
+		for _, pci := range pciDevices {
+			// Use user-specified order if provided, otherwise use auto-incrementing order
+			order := deviceOrder
+			if !pci.Order.IsNull() && pci.Order.ValueInt64() > 0 {
+				order = int(pci.Order.ValueInt64())
+			}
+
+			deviceReq := map[string]interface{}{
+				"vm":    vmID,
+				"dtype": "PCI",
+				"order": order,
+				"attributes": map[string]interface{}{
+					"pptdev": pci.PPTDev.ValueString(),
+				},
+			}
+
+			_, err := r.client.Post("/vm/device", deviceReq)
+			if err != nil {
+				diags.AddError("Device Creation Error", fmt.Sprintf("Unable to create PCI passthrough device: %s", err))
 				return
 			}
 			deviceOrder++

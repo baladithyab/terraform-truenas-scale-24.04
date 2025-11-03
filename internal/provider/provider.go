@@ -142,6 +142,9 @@ func (p *TruenasProvider) DataSources(ctx context.Context) []func() datasource.D
 		NewDatasetDataSource,
 		NewPoolDataSource,
 		NewVMGuestInfoDataSource,
+		NewGPUPCIChoicesDataSource,
+		NewVMPCIPassthroughDevicesDataSource,
+		NewVMIOMMUEnabledDataSource,
 	}
 }
 
