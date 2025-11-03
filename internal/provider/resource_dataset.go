@@ -6,11 +6,15 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+		"strings"
+
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+		"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
+
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -46,6 +50,10 @@ type DatasetResourceModel struct {
 	ReadOnly    types.String `tfsdk:"readonly"`
 	Exec        types.String `tfsdk:"exec"`
 	Sync        types.String `tfsdk:"sync"`
+		// Destroy-time options
+		ForceDestroy     types.Bool   `tfsdk:"force_destroy"`
+		RecursiveDestroy types.Bool   `tfsdk:"recursive_destroy"`
+
 	SnapDir     types.String `tfsdk:"snapdir"`
 	Copies      types.Int64  `tfsdk:"copies"`
 	RecordSize  types.String `tfsdk:"recordsize"`
@@ -154,6 +162,17 @@ func (r *DatasetResource) Schema(ctx context.Context, req resource.SchemaRequest
 				Optional:            true,
 				Computed:            true,
 			},
+				"force_destroy": schema.BoolAttribute{
+					MarkdownDescription: "Force destroy dataset by deleting snapshots and forcing busy dataset deletion",
+					Optional:            true,
+					Default:             booldefault.StaticBool(false),
+				},
+				"recursive_destroy": schema.BoolAttribute{
+					MarkdownDescription: "Recursively delete child datasets when destroying this dataset",
+					Optional:            true,
+					Default:             booldefault.StaticBool(false),
+				},
+
 		},
 	}
 }
@@ -397,12 +416,75 @@ func (r *DatasetResource) Delete(ctx context.Context, req resource.DeleteRequest
 		return
 	}
 
-	endpoint := fmt.Sprintf("/pool/dataset/id/%s", url.PathEscape(data.ID.ValueString()))
-	_, err := r.client.Delete(endpoint)
-	if err != nil {
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to delete dataset, got error: %s", err))
-		return
+	datasetID := data.ID.ValueString()
+	endpoint := fmt.Sprintf("/pool/dataset/id/%s", url.PathEscape(datasetID))
+
+	// Build delete options for API
+	recursive := !data.RecursiveDestroy.IsNull() && data.RecursiveDestroy.ValueBool()
+	force := !data.ForceDestroy.IsNull() && data.ForceDestroy.ValueBool()
+
+	deleteReq := map[string]bool{
+		"recursive": recursive,
+		"force":     force,
 	}
+
+	// First attempt deletion via API
+	_, err := r.client.DeleteWithBody(endpoint, deleteReq)
+	if err != nil {
+		// If force_destroy is set, attempt snapshot cleanup and retry once
+		if force {
+			if derr := r.deleteSnapshots(ctx, datasetID, &resp.Diagnostics); derr != nil {
+				resp.Diagnostics.AddError("Snapshot Cleanup Error", fmt.Sprintf("Failed to delete snapshots for dataset %q: %s", datasetID, derr))
+				return
+			}
+
+			// Retry deletion after cleaning up snapshots
+			if _, err2 := r.client.DeleteWithBody(endpoint, deleteReq); err2 != nil {
+				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to delete dataset after snapshot cleanup, got error: %s", err2))
+				return
+			}
+		} else {
+			resp.Diagnostics.AddError(
+				"Client Error",
+				fmt.Sprintf("Unable to delete dataset, got error: %s. Consider setting force_destroy = true to automatically remove snapshots.", err),
+			)
+			return
+		}
+	}
+}
+
+
+// deleteSnapshots removes all snapshots belonging to the provided datasetID (matching prefix "<dataset>@").
+func (r *DatasetResource) deleteSnapshots(ctx context.Context, datasetID string, diags *diag.Diagnostics) error {
+	respBody, err := r.client.Get("/zfs/snapshot")
+	if err != nil {
+		return fmt.Errorf("list snapshots: %w", err)
+	}
+
+	var snapshots []map[string]interface{}
+	if err := json.Unmarshal(respBody, &snapshots); err != nil {
+		return fmt.Errorf("parse snapshots: %w", err)
+	}
+
+	prefix := datasetID + "@"
+	for _, s := range snapshots {
+		name, _ := s["name"].(string)
+		if !strings.HasPrefix(name, prefix) {
+			continue
+		}
+
+		id, _ := s["id"].(string)
+		if id == "" {
+			// fallback to name if id not present
+			id = name
+		}
+
+		endpoint := fmt.Sprintf("/zfs/snapshot/id/%s", url.PathEscape(id))
+		if _, err := r.client.DeleteWithBody(endpoint, map[string]bool{"defer": false, "recursive": false}); err != nil {
+			return fmt.Errorf("delete snapshot %s: %w", id, err)
+		}
+	}
+	return nil
 }
 
 func (r *DatasetResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {

@@ -1,7 +1,8 @@
 terraform {
   required_providers {
     truenas = {
-      source = "terraform-providers/truenas"
+      source  = "terraform-providers/truenas"
+      version = "~> 0.2.14"
     }
   }
 }
@@ -22,20 +23,20 @@ resource "truenas_vm" "install_from_iso" {
   nic_devices = [{
     type       = "VIRTIO"
     nic_attach = "eno1"
-    order      = 1003  # NICs don't affect boot order, but we set it for consistency
+    order      = 1003 # NICs don't affect boot order, but we set it for consistency
   }]
 
   # CDROM with lower order boots FIRST
   cdrom_devices = [{
     path  = "/mnt/pool/isos/ubuntu-22.04.iso"
-    order = 1  # Boot from ISO FIRST
+    order = 1 # Boot from ISO FIRST
   }]
 
   # Disk with higher order boots SECOND
   disk_devices = [{
     path  = "/dev/zvol/pool/vms/install-disk0"
     type  = "VIRTIO"
-    order = 2  # Boot from disk SECOND (after ISO installation completes)
+    order = 2 # Boot from disk SECOND (after ISO installation completes)
   }]
 
   bootloader      = "UEFI"
@@ -60,13 +61,13 @@ resource "truenas_vm" "boot_from_disk" {
   disk_devices = [{
     path  = "/dev/zvol/pool/vms/boot-disk0"
     type  = "VIRTIO"
-    order = 1  # Boot from disk FIRST
+    order = 1 # Boot from disk FIRST
   }]
 
   # CDROM with higher order boots SECOND (fallback)
   cdrom_devices = [{
     path  = "/mnt/pool/isos/ubuntu-22.04.iso"
-    order = 2  # Boot from ISO only if disk boot fails
+    order = 2 # Boot from ISO only if disk boot fails
   }]
 
   bootloader      = "UEFI"
@@ -90,7 +91,7 @@ resource "truenas_vm" "talos_worker" {
   # For initial installation: CDROM boots first
   cdrom_devices = [{
     path  = "/mnt/pool/isos/talos-v1.10.6-metal-amd64.iso"
-    order = 1  # Boot from Talos ISO FIRST for installation
+    order = 1 # Boot from Talos ISO FIRST for installation
   }]
 
   # After installation: disk will have bootloader and boot second
@@ -98,7 +99,7 @@ resource "truenas_vm" "talos_worker" {
     path   = "/dev/zvol/pool/vms/talos-worker-01-disk0"
     type   = "VIRTIO"
     iotype = "THREADS"
-    order  = 2  # Boot from disk SECOND (after Talos is installed)
+    order  = 2 # Boot from disk SECOND (after Talos is installed)
   }]
 
   bootloader      = "UEFI"
@@ -123,19 +124,19 @@ resource "truenas_vm" "multi_disk" {
     {
       path  = "/dev/zvol/pool/vms/multi-os-disk"
       type  = "VIRTIO"
-      order = 1  # Primary boot disk
+      order = 1 # Primary boot disk
     },
     {
       path  = "/dev/zvol/pool/vms/multi-data-disk"
       type  = "VIRTIO"
-      order = 3  # Data disk (not bootable, lower priority)
+      order = 3 # Data disk (not bootable, lower priority)
     }
   ]
 
   # Rescue ISO as fallback
   cdrom_devices = [{
     path  = "/mnt/pool/isos/rescue.iso"
-    order = 2  # Boot from rescue ISO if primary disk fails
+    order = 2 # Boot from rescue ISO if primary disk fails
   }]
 
   bootloader = "UEFI"

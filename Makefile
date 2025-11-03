@@ -4,7 +4,7 @@ HOSTNAME=terraform-providers
 NAMESPACE=truenas
 NAME=truenas
 BINARY=terraform-provider-${NAME}
-VERSION=1.0.0
+VERSION=0.2.14
 OS_ARCH=linux_amd64
 
 default: build

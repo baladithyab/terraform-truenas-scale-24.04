@@ -101,6 +101,11 @@ func (c *Client) Delete(endpoint string) ([]byte, error) {
 	return c.DoRequest(http.MethodDelete, endpoint, nil)
 }
 
+// DeleteWithBody performs a DELETE request with a JSON body (some TrueNAS endpoints require this)
+func (c *Client) DeleteWithBody(endpoint string, body interface{}) ([]byte, error) {
+	return c.DoRequest(http.MethodDelete, endpoint, body)
+}
+
 // Patch performs a PATCH request
 func (c *Client) Patch(endpoint string, body interface{}) ([]byte, error) {
 	return c.DoRequest(http.MethodPatch, endpoint, body)

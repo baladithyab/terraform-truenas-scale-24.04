@@ -1,7 +1,8 @@
 terraform {
   required_providers {
     truenas = {
-      source = "github.com/baladithyab/truenas"
+      source  = "terraform-providers/truenas"
+      version = "~> 0.2.14"
     }
   }
 }
@@ -22,10 +23,10 @@ resource "truenas_chart_release" "plex" {
   train        = "charts"
   item         = "plex"
   version      = var.plex_version
-  
+
   values = jsonencode({
     hostNetwork = true
-    
+
     environmentVariables = [
       {
         name  = "TZ"
@@ -36,7 +37,7 @@ resource "truenas_chart_release" "plex" {
         value = var.plex_claim_token
       }
     ]
-    
+
     storage = {
       config = {
         type        = "ixVolume"
@@ -51,7 +52,7 @@ resource "truenas_chart_release" "plex" {
         datasetName = "plex-transcode"
       }
     }
-    
+
     resources = {
       limits = {
         cpu    = "4000m"
@@ -62,7 +63,7 @@ resource "truenas_chart_release" "plex" {
         memory = "2Gi"
       }
     }
-    
+
     gpuConfiguration = {
       nvidia = {
         enabled = var.enable_gpu
@@ -78,7 +79,7 @@ resource "truenas_chart_release" "sonarr" {
   train        = "charts"
   item         = "sonarr"
   version      = "1.0.0"
-  
+
   values = jsonencode({
     environmentVariables = [
       {
@@ -86,7 +87,7 @@ resource "truenas_chart_release" "sonarr" {
         value = var.timezone
       }
     ]
-    
+
     storage = {
       config = {
         type        = "ixVolume"
@@ -101,7 +102,7 @@ resource "truenas_chart_release" "sonarr" {
         hostPath = "/mnt/${var.pool_name}/downloads"
       }
     }
-    
+
     service = {
       main = {
         ports = {
@@ -122,7 +123,7 @@ resource "truenas_chart_release" "radarr" {
   train        = "charts"
   item         = "radarr"
   version      = "1.0.0"
-  
+
   values = jsonencode({
     environmentVariables = [
       {
@@ -130,7 +131,7 @@ resource "truenas_chart_release" "radarr" {
         value = var.timezone
       }
     ]
-    
+
     storage = {
       config = {
         type        = "ixVolume"
@@ -145,7 +146,7 @@ resource "truenas_chart_release" "radarr" {
         hostPath = "/mnt/${var.pool_name}/downloads"
       }
     }
-    
+
     service = {
       main = {
         ports = {
@@ -170,13 +171,13 @@ resource "truenas_chart_release" "nextcloud" {
   train        = "charts"
   item         = "nextcloud"
   version      = var.nextcloud_version
-  
+
   values = jsonencode({
     nextcloud = {
       host     = var.nextcloud_domain
       username = "admin"
     }
-    
+
     postgresql = {
       enabled            = true
       postgresqlUsername = "nextcloud"
@@ -186,11 +187,11 @@ resource "truenas_chart_release" "nextcloud" {
         storageClass = "ix-storage-class-nextcloud-postgres"
       }
     }
-    
+
     redis = {
       enabled = true
     }
-    
+
     storage = {
       data = {
         type        = "ixVolume"
@@ -201,7 +202,7 @@ resource "truenas_chart_release" "nextcloud" {
         datasetName = "nextcloud-config"
       }
     }
-    
+
     resources = {
       limits = {
         cpu    = "2000m"
@@ -226,24 +227,24 @@ resource "truenas_chart_release" "homeassistant" {
   train        = "charts"
   item         = "home-assistant"
   version      = "1.0.0"
-  
+
   values = jsonencode({
     hostNetwork = true
-    
+
     environmentVariables = [
       {
         name  = "TZ"
         value = var.timezone
       }
     ]
-    
+
     storage = {
       config = {
         type        = "ixVolume"
         datasetName = "homeassistant-config"
       }
     }
-    
+
     resources = {
       limits = {
         cpu    = "1000m"
@@ -265,7 +266,7 @@ resource "truenas_periodic_snapshot_task" "apps_hourly" {
   naming_schema  = "hourly-%Y-%m-%d_%H-%M"
   lifetime_value = 1
   lifetime_unit  = "DAY"
-  
+
   # Every hour
   schedule = jsonencode({
     minute = "0"
@@ -284,7 +285,7 @@ resource "truenas_periodic_snapshot_task" "apps_daily" {
   naming_schema  = "daily-%Y-%m-%d"
   lifetime_value = 1
   lifetime_unit  = "WEEK"
-  
+
   # Daily at 2 AM
   schedule = jsonencode({
     minute = "0"
@@ -303,7 +304,7 @@ resource "truenas_periodic_snapshot_task" "apps_weekly" {
   naming_schema  = "weekly-%Y-W%W"
   lifetime_value = 1
   lifetime_unit  = "MONTH"
-  
+
   # Every Sunday at 3 AM
   schedule = jsonencode({
     minute = "0"
@@ -322,7 +323,7 @@ resource "truenas_periodic_snapshot_task" "apps_monthly" {
   naming_schema  = "monthly-%Y-%m"
   lifetime_value = 1
   lifetime_unit  = "YEAR"
-  
+
   # First day of month at 4 AM
   schedule = jsonencode({
     minute = "0"
@@ -336,7 +337,7 @@ resource "truenas_periodic_snapshot_task" "apps_monthly" {
 # Pre-migration snapshot (manual trigger)
 resource "truenas_snapshot" "apps_pre_migration" {
   count = var.create_migration_snapshot ? 1 : 0
-  
+
   dataset   = "ix-applications"
   name      = "pre-migration-${formatdate("YYYY-MM-DD-hhmm", timestamp())}"
   recursive = true

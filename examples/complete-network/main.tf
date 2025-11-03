@@ -1,8 +1,8 @@
 terraform {
   required_providers {
     truenas = {
-      source  = "registry.terraform.io/YOUR_USERNAME/truenas"
-      version = "~> 1.0"
+      source  = "terraform-providers/truenas"
+      version = "~> 0.2.14"
     }
   }
 }
@@ -18,7 +18,7 @@ resource "truenas_interface" "primary" {
   type        = "PHYSICAL"
   description = "Primary Network Interface"
   ipv4_dhcp   = false
-  
+
   aliases {
     address = "192.168.1.10"
     netmask = 24
@@ -32,7 +32,7 @@ resource "truenas_interface" "mgmt_vlan" {
   description           = "Management VLAN"
   vlan_parent_interface = truenas_interface.primary.name
   vlan_tag              = 100
-  
+
   aliases {
     address = "10.0.100.10"
     netmask = 24
@@ -46,7 +46,7 @@ resource "truenas_interface" "storage_vlan" {
   description           = "Storage VLAN"
   vlan_parent_interface = truenas_interface.primary.name
   vlan_tag              = 200
-  
+
   aliases {
     address = "10.0.200.10"
     netmask = 24
@@ -59,7 +59,7 @@ resource "truenas_interface" "vm_bridge" {
   type           = "BRIDGE"
   description    = "VM Bridge"
   bridge_members = ["eth1"]
-  
+
   aliases {
     address = "192.168.100.1"
     netmask = 24
@@ -71,7 +71,7 @@ resource "truenas_static_route" "default" {
   destination = "default"
   gateway     = "192.168.1.1"
   description = "Default gateway"
-  
+
   depends_on = [truenas_interface.primary]
 }
 
@@ -80,7 +80,7 @@ resource "truenas_static_route" "remote_network" {
   destination = "10.10.0.0/16"
   gateway     = "192.168.1.254"
   description = "Route to remote datacenter"
-  
+
   depends_on = [truenas_interface.primary]
 }
 

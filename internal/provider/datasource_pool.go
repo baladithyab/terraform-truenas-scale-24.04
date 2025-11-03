@@ -96,17 +96,44 @@ func (d *PoolDataSource) Read(ctx context.Context, req datasource.ReadRequest, r
 		return
 	}
 
-	endpoint := fmt.Sprintf("/pool/id/%s", data.ID.ValueString())
-	respBody, err := d.client.Get(endpoint)
-	if err != nil {
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read pool, got error: %s", err))
-		return
-	}
+	idStr := data.ID.ValueString()
 
 	var result map[string]interface{}
-	if err := json.Unmarshal(respBody, &result); err != nil {
-		resp.Diagnostics.AddError("Parse Error", fmt.Sprintf("Unable to parse response: %s", err))
-		return
+
+	if _, errNum := strconv.Atoi(idStr); errNum == nil {
+		// Treat as numeric pool ID
+		endpoint := fmt.Sprintf("/pool/id/%s", idStr)
+		respBody, err := d.client.Get(endpoint)
+		if err != nil {
+			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read pool by id, got error: %s", err))
+			return
+		}
+		if err := json.Unmarshal(respBody, &result); err != nil {
+			resp.Diagnostics.AddError("Parse Error", fmt.Sprintf("Unable to parse response: %s", err))
+			return
+		}
+	} else {
+		// Treat as pool name; list and select the matching pool
+		respBody, err := d.client.Get("/pool")
+		if err != nil {
+			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to list pools, got error: %s", err))
+			return
+		}
+		var pools []map[string]interface{}
+		if err := json.Unmarshal(respBody, &pools); err != nil {
+			resp.Diagnostics.AddError("Parse Error", fmt.Sprintf("Unable to parse response: %s", err))
+			return
+		}
+		for _, p := range pools {
+			if name, ok := p["name"].(string); ok && name == idStr {
+				result = p
+				break
+			}
+		}
+		if result == nil {
+			resp.Diagnostics.AddError("Not Found", fmt.Sprintf("Pool %q not found by name", idStr))
+			return
+		}
 	}
 
 	if name, ok := result["name"].(string); ok {
