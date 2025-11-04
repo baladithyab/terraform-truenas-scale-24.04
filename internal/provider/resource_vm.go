@@ -52,6 +52,7 @@ type VMResourceModel struct {
 	NICDevices          types.List   `tfsdk:"nic_devices"`
 	DiskDevices         types.List   `tfsdk:"disk_devices"`
 	CDROMDevices        types.List   `tfsdk:"cdrom_devices"`
+	DisplayDevices      types.List   `tfsdk:"display_devices"`
 	PCIDevices          types.List   `tfsdk:"pci_devices"`
 }
 
@@ -80,6 +81,18 @@ type CDROMDeviceModel struct {
 type PCIDeviceModel struct {
 	PPTDev types.String `tfsdk:"pptdev"`
 	Order  types.Int64  `tfsdk:"order"`
+}
+
+type DisplayDeviceModel struct {
+	Port       types.Int64  `tfsdk:"port"`
+	Bind       types.String `tfsdk:"bind"`
+	Password   types.String `tfsdk:"password"`
+	Web        types.Bool   `tfsdk:"web"`
+	Type       types.String `tfsdk:"type"`
+	Resolution types.String `tfsdk:"resolution"`
+	WebPort    types.Int64  `tfsdk:"web_port"`
+	Wait       types.Bool   `tfsdk:"wait"`
+	Order      types.Int64  `tfsdk:"order"`
 }
 
 func (r *VMResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -258,6 +271,59 @@ func (r *VMResource) Schema(ctx context.Context, req resource.SchemaRequest, res
 						},
 						"order": schema.Int64Attribute{
 							MarkdownDescription: "Boot order for this device. Lower values boot first. If not specified, devices are ordered by type (NICs, then disks, then CDROMs)",
+							Optional:            true,
+							Computed:            true,
+						},
+					},
+				},
+			},
+			"display_devices": schema.ListNestedAttribute{
+				MarkdownDescription: "Display devices (SPICE/VNC) to attach to the VM for console access",
+				Optional:            true,
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"port": schema.Int64Attribute{
+							MarkdownDescription: "Port number for the display server (e.g., 5900 for VNC, 5902 for SPICE)",
+							Optional:            true,
+							Computed:            true,
+						},
+						"bind": schema.StringAttribute{
+							MarkdownDescription: "IP address to bind to (default: 0.0.0.0)",
+							Optional:            true,
+							Computed:            true,
+						},
+						"password": schema.StringAttribute{
+							MarkdownDescription: "Password for display access",
+							Optional:            true,
+							Sensitive:           true,
+						},
+						"web": schema.BoolAttribute{
+							MarkdownDescription: "Enable web access (default: true)",
+							Optional:            true,
+							Computed:            true,
+						},
+						"type": schema.StringAttribute{
+							MarkdownDescription: "Display type: SPICE or VNC (default: SPICE)",
+							Optional:            true,
+							Computed:            true,
+						},
+						"resolution": schema.StringAttribute{
+							MarkdownDescription: "Display resolution (e.g., 1024x768, 1920x1080)",
+							Optional:            true,
+							Computed:            true,
+						},
+						"web_port": schema.Int64Attribute{
+							MarkdownDescription: "Port for web access",
+							Optional:            true,
+							Computed:            true,
+						},
+						"wait": schema.BoolAttribute{
+							MarkdownDescription: "Wait for client connection before starting VM",
+							Optional:            true,
+							Computed:            true,
+						},
+						"order": schema.Int64Attribute{
+							MarkdownDescription: "Boot order for this device",
 							Optional:            true,
 							Computed:            true,
 						},
@@ -625,6 +691,7 @@ func (r *VMResource) readVM(ctx context.Context, data *VMResourceModel, diags *d
 	var nics []NICDeviceModel
 	var disks []DiskDeviceModel
 	var cdroms []CDROMDeviceModel
+	var displays []DisplayDeviceModel
 	var pciDevices []PCIDeviceModel
 
 	if devices, ok := result["devices"].([]interface{}); ok {
@@ -714,6 +781,56 @@ func (r *VMResource) readVM(ctx context.Context, data *VMResourceModel, diags *d
 						cdrom.Order = types.Int64Null()
 					}
 					cdroms = append(cdroms, cdrom)
+
+				case "DISPLAY":
+					display := DisplayDeviceModel{}
+					if port, ok := attributes["port"].(float64); ok {
+						display.Port = types.Int64Value(int64(port))
+					} else {
+						display.Port = types.Int64Null()
+					}
+					if bind, ok := attributes["bind"].(string); ok {
+						display.Bind = types.StringValue(bind)
+					} else {
+						display.Bind = types.StringNull()
+					}
+					if password, ok := attributes["password"].(string); ok {
+						display.Password = types.StringValue(password)
+					} else {
+						display.Password = types.StringNull()
+					}
+					if web, ok := attributes["web"].(bool); ok {
+						display.Web = types.BoolValue(web)
+					} else {
+						display.Web = types.BoolNull()
+					}
+					if displayType, ok := attributes["type"].(string); ok {
+						display.Type = types.StringValue(displayType)
+					} else {
+						display.Type = types.StringNull()
+					}
+					if resolution, ok := attributes["resolution"].(string); ok {
+						display.Resolution = types.StringValue(resolution)
+					} else {
+						display.Resolution = types.StringNull()
+					}
+					if webPort, ok := attributes["web_port"].(float64); ok {
+						display.WebPort = types.Int64Value(int64(webPort))
+					} else {
+						display.WebPort = types.Int64Null()
+					}
+					if wait, ok := attributes["wait"].(bool); ok {
+						display.Wait = types.BoolValue(wait)
+					} else {
+						display.Wait = types.BoolNull()
+					}
+					// Read order from device level (not attributes)
+					if order, ok := deviceMap["order"].(float64); ok {
+						display.Order = types.Int64Value(int64(order))
+					} else {
+						display.Order = types.Int64Null()
+					}
+					displays = append(displays, display)
 
 				case "PCI":
 					pci := PCIDeviceModel{}
@@ -820,6 +937,41 @@ func (r *VMResource) readVM(ctx context.Context, data *VMResourceModel, diags *d
 			AttrTypes: map[string]attr.Type{
 				"path":  types.StringType,
 				"order": types.Int64Type,
+			},
+		})
+	}
+
+	if len(displays) > 0 {
+		displayList, diagErr := types.ListValueFrom(ctx, types.ObjectType{
+			AttrTypes: map[string]attr.Type{
+				"port":       types.Int64Type,
+				"bind":       types.StringType,
+				"password":   types.StringType,
+				"web":        types.BoolType,
+				"type":       types.StringType,
+				"resolution": types.StringType,
+				"web_port":   types.Int64Type,
+				"wait":       types.BoolType,
+				"order":      types.Int64Type,
+			},
+		}, displays)
+		if diagErr.HasError() {
+			diags.Append(diagErr...)
+		} else {
+			data.DisplayDevices = displayList
+		}
+	} else {
+		data.DisplayDevices = types.ListNull(types.ObjectType{
+			AttrTypes: map[string]attr.Type{
+				"port":       types.Int64Type,
+				"bind":       types.StringType,
+				"password":   types.StringType,
+				"web":        types.BoolType,
+				"type":       types.StringType,
+				"resolution": types.StringType,
+				"web_port":   types.Int64Type,
+				"wait":       types.BoolType,
+				"order":      types.Int64Type,
 			},
 		})
 	}
@@ -983,6 +1135,66 @@ func (r *VMResource) createDevices(ctx context.Context, data *VMResourceModel, d
 			_, err := r.client.Post("/vm/device", deviceReq)
 			if err != nil {
 				diags.AddError("Device Creation Error", fmt.Sprintf("Unable to create CDROM device: %s", err))
+				return
+			}
+			deviceOrder++
+		}
+	}
+
+	// Create Display devices
+	if !data.DisplayDevices.IsNull() && !data.DisplayDevices.IsUnknown() {
+		var displays []DisplayDeviceModel
+		diagErr := data.DisplayDevices.ElementsAs(ctx, &displays, false)
+		if diagErr.HasError() {
+			diags.Append(diagErr...)
+			return
+		}
+
+		for _, display := range displays {
+			// Use user-specified order if provided, otherwise use auto-incrementing order
+			order := deviceOrder
+			if !display.Order.IsNull() && display.Order.ValueInt64() > 0 {
+				order = int(display.Order.ValueInt64())
+			}
+
+			attributes := make(map[string]interface{})
+
+			// Add optional attributes only if they're specified
+			if !display.Port.IsNull() {
+				attributes["port"] = int(display.Port.ValueInt64())
+			}
+			if !display.Bind.IsNull() {
+				attributes["bind"] = display.Bind.ValueString()
+			}
+			if !display.Password.IsNull() {
+				attributes["password"] = display.Password.ValueString()
+			}
+			if !display.Web.IsNull() {
+				attributes["web"] = display.Web.ValueBool()
+			}
+			if !display.Type.IsNull() {
+				attributes["type"] = display.Type.ValueString()
+			}
+			if !display.Resolution.IsNull() {
+				attributes["resolution"] = display.Resolution.ValueString()
+			}
+			if !display.WebPort.IsNull() {
+				attributes["web_port"] = int(display.WebPort.ValueInt64())
+			}
+			if !display.Wait.IsNull() {
+				attributes["wait"] = display.Wait.ValueBool()
+			}
+
+			deviceReq := map[string]interface{}{
+				"vm":         vmID,
+				"dtype":      "DISPLAY",
+				"order":      order,
+				"attributes": attributes,
+			}
+
+			_, err := r.client.Post("/vm/device", deviceReq)
+			if err != nil {
+				diags.AddError("Device Creation Error", fmt.Sprintf("Unable to create DISPLAY device: %s", err))
 				return
 			}
 			deviceOrder++
