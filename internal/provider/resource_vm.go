@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/terraform-providers/terraform-provider-truenas/internal/truenas"
@@ -219,6 +220,9 @@ func (r *VMResource) Schema(ctx context.Context, req resource.SchemaRequest, res
 							MarkdownDescription: "Boot order for this device. Lower values boot first. If not specified, devices are ordered by type (NICs, then disks, then CDROMs)",
 							Optional:            true,
 							Computed:            true,
+							PlanModifiers: []planmodifier.Int64{
+								int64planmodifier.UseStateForUnknown(),
+							},
 						},
 					},
 				},
@@ -256,6 +260,9 @@ func (r *VMResource) Schema(ctx context.Context, req resource.SchemaRequest, res
 							MarkdownDescription: "Boot order for this device. Lower values boot first. If not specified, devices are ordered by type (NICs, then disks, then CDROMs)",
 							Optional:            true,
 							Computed:            true,
+							PlanModifiers: []planmodifier.Int64{
+								int64planmodifier.UseStateForUnknown(),
+							},
 						},
 					},
 				},
@@ -273,6 +280,9 @@ func (r *VMResource) Schema(ctx context.Context, req resource.SchemaRequest, res
 							MarkdownDescription: "Boot order for this device. Lower values boot first. If not specified, devices are ordered by type (NICs, then disks, then CDROMs)",
 							Optional:            true,
 							Computed:            true,
+							PlanModifiers: []planmodifier.Int64{
+								int64planmodifier.UseStateForUnknown(),
+							},
 						},
 					},
 				},
@@ -326,6 +336,9 @@ func (r *VMResource) Schema(ctx context.Context, req resource.SchemaRequest, res
 							MarkdownDescription: "Boot order for this device",
 							Optional:            true,
 							Computed:            true,
+							PlanModifiers: []planmodifier.Int64{
+								int64planmodifier.UseStateForUnknown(),
+							},
 						},
 					},
 				},
@@ -343,6 +356,9 @@ func (r *VMResource) Schema(ctx context.Context, req resource.SchemaRequest, res
 							MarkdownDescription: "Boot order for this device. Lower values boot first.",
 							Optional:            true,
 							Computed:            true,
+							PlanModifiers: []planmodifier.Int64{
+								int64planmodifier.UseStateForUnknown(),
+							},
 						},
 					},
 				},

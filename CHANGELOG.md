@@ -14,6 +14,50 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Certificate management
 - Cron job management
 
+## [0.2.16] - 2025-11-04
+
+### Added
+- **Display Device Support for VMs**: Full SPICE and VNC display device configuration
+  - Configure display type (SPICE/VNC), ports, bindings, and passwords
+  - Web-based console access with configurable ports
+  - Custom display resolution support (e.g., 1024x768, 1920x1080)
+  - Boot order integration for display devices
+  - **Example**:
+    ```hcl
+    resource "truenas_vm" "example" {
+      name = "my-vm"
+      display_devices = [{
+        type       = "SPICE"
+        port       = 5904
+        bind       = "0.0.0.0"
+        password   = "secure123"
+        web        = true
+        web_port   = 5905
+        resolution = "1920x1080"
+      }]
+    }
+    ```
+
+- **New Example: Talos Minimal VM**: Demonstrates minimal Talos Linux configuration
+  - Boot order setup (CDROM first, then disk)
+  - AHCI disk type usage
+  - SPICE display configuration
+  - Located at `examples/talos-minimal/`
+
+### Fixed
+- **Device Order Inconsistency Error**: Fixed "Provider produced inconsistent result after apply" error
+  - Issue: TrueNAS was adjusting device order values (e.g., 1001 → 1002) causing Terraform to report inconsistencies
+  - Root cause: Server-side order adjustments when `ensure_display_device` creates automatic display devices
+  - Solution: Added `UseStateForUnknown()` plan modifier to all device `order` attributes
+  - Affected attributes: `nic_devices[].order`, `disk_devices[].order`, `cdrom_devices[].order`, `display_devices[].order`, `pci_devices[].order`
+  - Impact: VM creation and updates with device ordering now work reliably
+
+### Changed
+- **Examples Organization**: Moved test examples to main examples directory
+  - `test-talos-minimal` → `examples/talos-minimal`
+  - `test-boot-order` → `examples/boot-order`
+  - `test-volsize` → `examples/volsize`
+
 ## [0.2.15] - 2025-11-03
 
 ### Added
