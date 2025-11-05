@@ -14,6 +14,49 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Certificate management
 - Cron job management
 
+## [0.2.17] - 2025-11-04
+
+### Enhanced
+- **VM Resource - Intelligent min_memory Default**: The `min_memory` attribute now automatically defaults to the `memory` value when not explicitly specified
+  - **Benefit**: Prevents "virtio_balloon: Out of puff!" errors by disabling memory ballooning by default
+  - **Behavior**: Memory ballooning is now opt-in rather than opt-out
+  - **Backward Compatible**: Existing VMs with explicit `min_memory` values are unaffected
+  - **Implementation**: Added plan modifier and default logic in Create() and Update() functions
+  - **Documentation**: Updated schema description to reflect new default behavior
+
+### Technical Details
+- **Files Changed**:
+  - `internal/provider/resource_vm.go` - Enhanced min_memory handling with automatic defaults
+  - `Makefile` - Version bump to 0.2.17
+- **Key Changes**:
+  - Added `UseStateForUnknown()` plan modifier to min_memory attribute
+  - Create() function now defaults min_memory to memory value if not specified
+  - Update() function now defaults min_memory to memory value if not specified
+  - Enhanced MarkdownDescription for min_memory attribute
+
+### Usage Example
+```hcl
+# Before (v0.2.16): Had to explicitly set min_memory to disable ballooning
+resource "truenas_vm" "example" {
+  name       = "my-vm"
+  memory     = 8192
+  min_memory = 8192  # Required to prevent ballooning errors
+}
+
+# After (v0.2.17): min_memory automatically defaults to memory
+resource "truenas_vm" "example" {
+  name   = "my-vm"
+  memory = 8192  # min_memory automatically set to 8192
+}
+
+# To enable memory ballooning (optional):
+resource "truenas_vm" "flexible" {
+  name       = "flexible-vm"
+  memory     = 8192   # 8GB max
+  min_memory = 2048   # 2GB min - enables ballooning
+}
+```
+
 ## [0.2.16] - 2025-11-04
 
 ### Added

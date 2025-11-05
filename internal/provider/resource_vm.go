@@ -140,9 +140,12 @@ func (r *VMResource) Schema(ctx context.Context, req resource.SchemaRequest, res
 				Required:            true,
 			},
 			"min_memory": schema.Int64Attribute{
-				MarkdownDescription: "Minimum memory in MB (for memory ballooning)",
+				MarkdownDescription: "Minimum memory in MB (for memory ballooning). Defaults to the value of memory if not specified.",
 				Optional:            true,
 				Computed:            true,
+				PlanModifiers: []planmodifier.Int64{
+					int64planmodifier.UseStateForUnknown(),
+				},
 			},
 			"autostart": schema.BoolAttribute{
 				MarkdownDescription: "Start VM automatically on boot",
@@ -422,8 +425,13 @@ func (r *VMResource) Create(ctx context.Context, req resource.CreateRequest, res
 	if !data.Threads.IsNull() && data.Threads.ValueInt64() > 0 {
 		createReq["threads"] = data.Threads.ValueInt64()
 	}
+	// Set min_memory: if explicitly provided, use that value; otherwise default to memory value
+	// This disables memory ballooning by default, preventing "virtio_balloon: Out of puff!" errors
 	if !data.MinMemory.IsNull() && data.MinMemory.ValueInt64() > 0 {
 		createReq["min_memory"] = data.MinMemory.ValueInt64()
+	} else {
+		// Default to memory value to disable ballooning
+		createReq["min_memory"] = data.Memory.ValueInt64()
 	}
 
 	// Handle optional boolean fields
@@ -539,8 +547,13 @@ func (r *VMResource) Update(ctx context.Context, req resource.UpdateRequest, res
 	if !data.Threads.IsNull() {
 		updateReq["threads"] = data.Threads.ValueInt64()
 	}
-	if !data.MinMemory.IsNull() {
+	// Set min_memory: if explicitly provided, use that value; otherwise default to memory value
+	// This disables memory ballooning by default, preventing "virtio_balloon: Out of puff!" errors
+	if !data.MinMemory.IsNull() && data.MinMemory.ValueInt64() > 0 {
 		updateReq["min_memory"] = data.MinMemory.ValueInt64()
+	} else {
+		// Default to memory value to disable ballooning
+		updateReq["min_memory"] = data.Memory.ValueInt64()
 	}
 	if !data.Autostart.IsNull() {
 		updateReq["autostart"] = data.Autostart.ValueBool()
