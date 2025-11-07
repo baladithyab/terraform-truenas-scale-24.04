@@ -2,29 +2,59 @@
 
 This is a Terraform provider for managing TrueNAS Scale 24.04 resources using the REST API. This provider is specifically designed for TrueNAS Scale 24.04, as version 25.04 transitions from REST to JSON-RPC over WebSocket.
 
+## ⚠️ Known Limitations
+
+**Please read these important limitations before using this provider:**
+
+### TrueNAS Version Compatibility
+- **✅ TrueNAS Scale 24.04 ONLY**: This provider uses the REST API which is only available in version 24.04
+- **❌ TrueNAS Scale 25.x NOT SUPPORTED**: Version 25.x switched to JSON-RPC over WebSocket and is incompatible with this provider
+- **Recommendation**: Stay on TrueNAS Scale 24.04 if you want to use this Terraform provider
+
+### VM IP Address Discovery
+- **API Limitation**: The TrueNAS 24.04 REST API does not expose VM IP addresses or guest agent information
+- **Workarounds Available**:
+  - Use MAC address export + DHCP lookup (works for ALL VMs including Talos)
+  - Use SSH-based guest agent query (requires guest agent installed in VM)
+- **📖 See**: [`VM_IP_DISCOVERY.md`](VM_IP_DISCOVERY.md) for complete guide and examples
+
+### Static IP Configuration
+- **API Limitation**: You cannot configure static IP addresses in the guest OS through the TrueNAS API
+- **Workaround**: Configure static IPs manually in the guest OS or use cloud-init/user-data
+- **For Talos Linux**: Use Talos machine configuration to set static IPs
+
+### Full Details
+For comprehensive information about limitations and workarounds, see [`KNOWN_LIMITATIONS.md`](KNOWN_LIMITATIONS.md).
+
+---
+
 ## Features
 
 - **Full REST API Support**: Leverages all available TrueNAS Scale 24.04 REST API endpoints
 - **Resource Management**: Create, read, update, and delete TrueNAS resources
 - **Import Support**: Import existing TrueNAS resources into Terraform state
 - **Comprehensive Resources**:
-  - ZFS Datasets & Snapshots
-  - NFS Shares
-  - SMB/CIFS Shares
+  - ZFS Datasets & Snapshots with periodic scheduling
+  - NFS & SMB Shares
   - Users & Groups
-  - Virtual Machines
+  - **Virtual Machines** with lifecycle management (`desired_state` for started/stopped control)
+  - **VM Devices** - Standalone device management (NICs, disks, CDROMs, PCI passthrough)
   - iSCSI (Targets, Extents, Portals)
   - Network (Interfaces, VLANs, Bridges, LAGs, Static Routes)
   - Kubernetes Apps (Chart Releases) with **Migration Support**
-  - Automated Snapshot Tasks
+- **VM IP Discovery**: Multiple methods for discovering VM IP addresses (see [`VM_IP_DISCOVERY.md`](VM_IP_DISCOVERY.md))
+  - MAC address export for DHCP lookup
+  - Guest agent queries with enhanced security options
 - **Data Sources**:
-  - Dataset information
-  - Pool information
+  - Dataset, Pool, VM information
+  - VM guest info (IP addresses, hostname, OS details)
+  - Resource discovery (VMs, NFS shares, SMB shares)
+  - GPU/PCI device discovery for passthrough
 - **Migration Capabilities**:
   - Export Kubernetes apps to external K8s clusters
   - Backup and restore with PVCs
   - Automated migration scripts
-  - See [KUBERNETES_MIGRATION.md](KUBERNETES_MIGRATION.md)
+  - See [`KUBERNETES_MIGRATION.md`](KUBERNETES_MIGRATION.md)
 
 ## Requirements
 
@@ -272,16 +302,45 @@ terraform import truenas_group.developers 1000
 
 ## Available Resources
 
-- `truenas_dataset` - Manage ZFS datasets
-- `truenas_nfs_share` - Manage NFS shares
-- `truenas_smb_share` - Manage SMB/CIFS shares
-- `truenas_user` - Manage user accounts
-- `truenas_group` - Manage groups
+### Storage & File Sharing
+- [`truenas_dataset`](examples/resources/truenas_dataset/resource.tf) - ZFS dataset management
+- [`truenas_nfs_share`](examples/resources/truenas_nfs_share/resource.tf) - NFS share management
+- [`truenas_smb_share`](examples/resources/truenas_smb_share/resource.tf) - SMB/CIFS share management
+- [`truenas_snapshot`](examples/resources/truenas_snapshot/resource.tf) - ZFS snapshot management
+- [`truenas_periodic_snapshot_task`](examples/resources/truenas_periodic_snapshot_task/resource.tf) - Automated snapshot scheduling
+
+### Virtual Machines
+- [`truenas_vm`](examples/resources/truenas_vm/resource.tf) - Virtual machine management with **lifecycle control** (desired_state)
+- [`truenas_vm_device`](examples/resources/truenas_vm_device/resource.tf) - Standalone VM device management
+
+### User Management
+- [`truenas_user`](examples/resources/truenas_user/resource.tf) - User account management
+- [`truenas_group`](examples/resources/truenas_group/resource.tf) - Group management
+
+### iSCSI
+- [`truenas_iscsi_target`](examples/resources/truenas_iscsi_target/resource.tf) - iSCSI target management
+- [`truenas_iscsi_extent`](examples/resources/truenas_iscsi_extent/resource.tf) - iSCSI extent management
+- [`truenas_iscsi_portal`](examples/resources/truenas_iscsi_portal/resource.tf) - iSCSI portal management
+
+### Network
+- [`truenas_interface`](examples/resources/truenas_interface/resource.tf) - Network interface management
+- [`truenas_static_route`](examples/resources/truenas_static_route/resource.tf) - Static route management
+
+### Kubernetes/Apps
+- [`truenas_chart_release`](examples/resources/truenas_chart_release/resource.tf) - Kubernetes application deployment
 
 ## Available Data Sources
 
-- `truenas_dataset` - Get information about a dataset
-- `truenas_pool` - Get information about a pool
+- [`truenas_dataset`](examples/data-sources/) - Get information about a dataset
+- [`truenas_pool`](examples/data-sources/) - Get information about a pool
+- [`truenas_vm_guest_info`](examples/data-sources/truenas_vm_guest_info/) - Query VM guest agent for IP addresses and OS info
+- [`truenas_vms`](examples/data-sources/) - List all VMs with status
+- [`truenas_vm`](examples/data-sources/) - Get specific VM information
+- [`truenas_nfs_shares`](examples/data-sources/) - List all NFS shares
+- [`truenas_smb_shares`](examples/data-sources/) - List all SMB shares
+- [`truenas_gpu_pci_choices`](examples/data-sources/) - Discover available GPUs
+- [`truenas_vm_pci_passthrough_devices`](examples/data-sources/) - List PCI passthrough devices
+- [`truenas_vm_iommu_enabled`](examples/data-sources/) - Check IOMMU status
 
 ## Development
 
@@ -317,11 +376,12 @@ The TrueNAS Scale 24.04 API has 148,000+ lines of OpenAPI specification with hun
 
 ### High Priority Resources
 
-- **Virtual Machines** (`truenas_vm`)
-  - Create and manage VMs
-  - Configure CPU, memory, storage
-  - Manage VM devices (NICs, disks, USB, PCI passthrough)
-  - VM lifecycle (start, stop, restart, suspend)
+- **Virtual Machines** (`truenas_vm`) ✅ **IMPLEMENTED**
+  - ✅ Create and manage VMs
+  - ✅ Configure CPU, memory, storage
+  - ✅ Manage VM devices (NICs, disks, USB, PCI passthrough)
+  - ✅ VM lifecycle management via `desired_state` attribute (started/stopped)
+  - ✅ Standalone device management via `truenas_vm_device` resource
 
 - **iSCSI**
   - `truenas_iscsi_target` - iSCSI targets

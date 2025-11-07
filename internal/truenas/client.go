@@ -105,9 +105,87 @@ func (c *Client) Delete(endpoint string) ([]byte, error) {
 func (c *Client) DeleteWithBody(endpoint string, body interface{}) ([]byte, error) {
 	return c.DoRequest(http.MethodDelete, endpoint, body)
 }
-
 // Patch performs a PATCH request
 func (c *Client) Patch(endpoint string, body interface{}) ([]byte, error) {
 	return c.DoRequest(http.MethodPatch, endpoint, body)
 }
+
+// VM Device API methods
+
+// GetVMDevice retrieves a VM device by ID
+func (c *Client) GetVMDevice(id string) ([]byte, error) {
+	endpoint := fmt.Sprintf("/vm/device/id/%s", id)
+	return c.Get(endpoint)
+}
+
+// VM Lifecycle API methods
+
+// StartVM starts a VM
+func (c *Client) StartVM(id string) ([]byte, error) {
+	endpoint := fmt.Sprintf("/vm/id/%s/start", id)
+	return c.Post(endpoint, nil)
+}
+
+// StopVM gracefully stops a VM
+func (c *Client) StopVM(id string) ([]byte, error) {
+	endpoint := fmt.Sprintf("/vm/id/%s/stop", id)
+	return c.Post(endpoint, nil)
+}
+
+// PowerOffVM forces a VM power off
+func (c *Client) PowerOffVM(id string) ([]byte, error) {
+	endpoint := fmt.Sprintf("/vm/id/%s/poweroff", id)
+	return c.Post(endpoint, nil)
+}
+
+// RestartVM restarts a VM
+func (c *Client) RestartVM(id string) ([]byte, error) {
+	endpoint := fmt.Sprintf("/vm/id/%s/restart", id)
+	return c.Post(endpoint, nil)
+}
+
+// SuspendVM suspends a VM
+func (c *Client) SuspendVM(id string) ([]byte, error) {
+	endpoint := fmt.Sprintf("/vm/id/%s/suspend", id)
+	return c.Post(endpoint, nil)
+}
+
+// ResumeVM resumes a suspended VM
+func (c *Client) ResumeVM(id string) ([]byte, error) {
+	endpoint := fmt.Sprintf("/vm/id/%s/resume", id)
+	return c.Post(endpoint, nil)
+}
+
+// GetVMStatus retrieves the current status of a VM
+func (c *Client) GetVMStatus(id string) (map[string]interface{}, error) {
+	endpoint := fmt.Sprintf("/vm/id/%s", id)
+	respBody, err := c.Get(endpoint)
+	if err != nil {
+		return nil, err
+	}
+	
+	var result map[string]interface{}
+	if err := json.Unmarshal(respBody, &result); err != nil {
+		return nil, fmt.Errorf("error unmarshaling VM status: %w", err)
+	}
+	
+	return result, nil
+}
+// CreateVMDevice creates a new VM device
+func (c *Client) CreateVMDevice(device map[string]interface{}) ([]byte, error) {
+	return c.Post("/vm/device", device)
+}
+
+// UpdateVMDevice updates an existing VM device
+func (c *Client) UpdateVMDevice(id string, device map[string]interface{}) ([]byte, error) {
+	endpoint := fmt.Sprintf("/vm/device/id/%s", id)
+	return c.Put(endpoint, device)
+}
+
+// DeleteVMDevice deletes a VM device
+func (c *Client) DeleteVMDevice(id string) ([]byte, error) {
+	endpoint := fmt.Sprintf("/vm/device/id/%s", id)
+	return c.Delete(endpoint)
+}
+
 

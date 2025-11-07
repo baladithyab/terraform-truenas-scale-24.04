@@ -14,6 +14,217 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Certificate management
 - Cron job management
 
+## [0.2.18] - 2025-11-07
+
+### Added
+
+#### New Resource: Standalone VM Device Management
+- **`truenas_vm_device`**: Manage VM devices independently of the VM resource
+  - **Use Case**: Add/remove/modify devices on existing VMs without recreating the VM
+  - **Supported Device Types**: DISK, NIC, CDROM, PCI, RAW, DISPLAY
+  - **Features**:
+    - Full CRUD operations for all device types
+    - Import support for existing devices
+    - Independent lifecycle from VM resource
+    - Useful for dynamic device management
+  - **Example**:
+    ```hcl
+    resource "truenas_vm_device" "additional_nic" {
+      vm_id = truenas_vm.example.id
+      dtype = "NIC"
+      attributes = {
+        type       = "VIRTIO"
+        nic_attach = "br0"
+      }
+    }
+    ```
+
+#### VM Lifecycle Management with desired_state
+- **New `desired_state` attribute** for [`truenas_vm`](internal/provider/resource_vm.go:line) resource
+  - **Values**: "RUNNING" or "STOPPED"
+  - **Behavior**: Provider automatically starts/stops VM to match desired state
+  - **Use Case**: Ensure VMs are in the correct state without manual intervention
+  - **Example**:
+    ```hcl
+    resource "truenas_vm" "example" {
+      name          = "my-vm"
+      memory        = 4096
+      vcpus         = 2
+      desired_state = "RUNNING"  # VM will be started automatically
+    }
+    ```
+  - **Benefits**:
+    - Declarative VM state management
+    - Automatic recovery if VM state drifts
+    - Simplifies VM lifecycle in automation
+
+### Enhanced
+
+#### VM Guest Info Data Source - Security & Reliability
+- **Authentication Validation**: Provider now validates SSH authentication **before** querying guest agent
+  - Eliminates wasted time on invalid credentials
+  - Clear error messages for authentication failures
+  - Faster feedback on configuration issues
+
+- **New Security Attribute**: `ssh_strict_host_key_checking` (optional, default: false)
+  - **When `true`**: SSH will reject connections if host key is not in known_hosts
+  - **When `false`**: SSH will accept any host key (convenient for automation)
+  - **Recommendation**: Use `true` in production for better security
+  - **Example**:
+    ```hcl
+    data "truenas_vm_guest_info" "ubuntu" {
+      vm_name                      = "ubuntu-vm"
+      truenas_host                 = "10.0.0.83"
+      ssh_user                     = "root"
+      ssh_key_path                 = "~/.ssh/truenas_key"
+      ssh_strict_host_key_checking = true  # Enforce host key verification
+    }
+    ```
+
+- **New Timeout Attribute**: `ssh_timeout_seconds` (optional, default: 10)
+  - **Purpose**: Configure SSH connection timeout
+  - **Use Case**: Increase for slow networks or busy TrueNAS systems
+  - **Example**:
+    ```hcl
+    data "truenas_vm_guest_info" "ubuntu" {
+      vm_name             = "ubuntu-vm"
+      truenas_host        = "10.0.0.83"
+      ssh_user            = "root"
+      ssh_key_path        = "~/.ssh/truenas_key"
+      ssh_timeout_seconds = 30  # Wait up to 30 seconds
+    }
+    ```
+
+### Fixed
+
+#### Authentication & Connection Issues
+- **Critical Fix**: Authentication validation now happens before guest agent query
+  - **Before**: Provider would attempt guest agent query with invalid credentials, leading to confusing errors
+  - **After**: Clear authentication error message immediately
+  - **Impact**: Faster debugging, clearer error messages
+
+- **Improved Error Messages**: Better diagnostics for common issues
+  - Authentication failures now show specific SSH error
+  - Timeout errors clearly indicate connection timeout
+  - Guest agent errors distinguish between agent problems vs connection issues
+
+#### SSH Connection Reliability
+- **Configurable Timeouts**: Users can now adjust SSH timeout for their environment
+  - Fixes timeout issues on slow networks
+  - Allows accommodation of busy TrueNAS systems
+  - Default remains 10 seconds for quick failure detection
+
+- **Host Key Verification**: Optional strict host key checking for better security
+  - Prevents man-in-the-middle attacks when enabled
+  - Maintains ease-of-use with default disabled for development
+
+### Documentation
+
+#### New Documentation
+- **[`KNOWN_LIMITATIONS.md`](KNOWN_LIMITATIONS.md)**: Comprehensive limitations guide
+  - TrueNAS version compatibility (24.04 only)
+  - VM IP discovery limitations and workarounds
+  - Static IP configuration workarounds
+  - Summary table of all limitations
+
+#### Updated Documentation
+- **[`README.md`](README.md)**:
+  - Added prominent "Known Limitations" section at top
+  - Updated features list with VM lifecycle management
+  - Updated resources list to include `truenas_vm_device`
+  - Added link to [`KNOWN_LIMITATIONS.md`](KNOWN_LIMITATIONS.md)
+  - Updated feature highlights
+
+- **[`VM_IP_DISCOVERY.md`](VM_IP_DISCOVERY.md)**:
+  - Documented `ssh_strict_host_key_checking` attribute
+  - Documented `ssh_timeout_seconds` attribute
+  - Added authentication validation section
+  - Expanded troubleshooting section with new error messages
+  - Added common error messages table
+  - Documented host key verification process
+
+- **[`API_COVERAGE.md`](API_COVERAGE.md)**:
+  - Updated total resources count: 14 → 15
+  - Updated total data sources count: 2 → 10
+  - Updated API coverage: ~2.2% → ~2.5%
+  - Added `truenas_vm_device` to resources list
+  - Updated VM section to show lifecycle management as implemented
+  - Updated metrics and implementation status
+
+### Technical Details
+
+#### Files Changed
+- `internal/provider/resource_vm_device.go` - New resource implementation
+- `internal/provider/resource_vm.go` - Added `desired_state` attribute
+- `internal/provider/datasource_vm_guest_info.go` - Enhanced with security options
+- `internal/provider/provider.go` - Registered new resource
+- `README.md` - Updated with limitations and features
+- `VM_IP_DISCOVERY.md` - Documented new security features
+- `API_COVERAGE.md` - Updated coverage statistics
+- `KNOWN_LIMITATIONS.md` - New comprehensive limitations guide
+
+#### Backward Compatibility
+- ✅ No breaking changes
+- ✅ All v0.2.17 configurations work in v0.2.18
+- ✅ New attributes are optional with sensible defaults
+- ✅ `desired_state` defaults to maintaining current state
+- ✅ `ssh_strict_host_key_checking` defaults to false (permissive)
+- ✅ `ssh_timeout_seconds` defaults to 10 seconds
+
+### Upgrade Notes
+
+#### From v0.2.17
+
+No breaking changes. Simply update your provider version:
+
+```hcl
+terraform {
+  required_providers {
+    truenas = {
+      source  = "baladithyab/truenas"
+      version = "~> 0.2.18"
+    }
+  }
+}
+```
+
+Then run:
+```bash
+terraform init -upgrade
+```
+
+#### Optional: Enable VM Lifecycle Management
+
+If you want VMs to automatically start:
+
+```hcl
+resource "truenas_vm" "example" {
+  name          = "my-vm"
+  memory        = 4096
+  vcpus         = 2
+  desired_state = "RUNNING"  # Add this line
+}
+```
+
+#### Optional: Enable Strict Host Key Checking
+
+For production environments, enable strict host key checking:
+
+```hcl
+data "truenas_vm_guest_info" "example" {
+  vm_name                      = "my-vm"
+  truenas_host                 = "10.0.0.83"
+  ssh_user                     = "root"
+  ssh_key_path                 = "~/.ssh/truenas_key"
+  ssh_strict_host_key_checking = true  # Add this line
+}
+```
+
+Make sure to add TrueNAS host key to known_hosts first:
+```bash
+ssh-keyscan -H 10.0.0.83 >> ~/.ssh/known_hosts
+```
+
 ## [0.2.17] - 2025-11-04
 
 ### Enhanced

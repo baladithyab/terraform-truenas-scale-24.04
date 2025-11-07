@@ -1,9 +1,13 @@
-# Query guest agent information from a VM
+# Query guest agent information from a VM (using SSH key)
 data "truenas_vm_guest_info" "ubuntu" {
   vm_name      = "ubuntu-vm"
   truenas_host = var.truenas_host
   ssh_user     = var.ssh_user
   ssh_key_path = var.ssh_key_path
+
+  # Optional: Configure SSH behavior
+  ssh_strict_host_key_checking = true # Default: true (verify host keys)
+  ssh_timeout_seconds          = 30   # Default: 30 seconds
 }
 
 variable "truenas_host" {
@@ -58,18 +62,32 @@ locals {
 
 # Example: Query multiple VMs
 data "truenas_vm_guest_info" "plex" {
-  vm_name      = "plex-server"
-  truenas_host = var.truenas_host
-  ssh_user     = var.ssh_user
-  ssh_key_path = var.ssh_key_path
+  vm_name                      = "plex-server"
+  truenas_host                 = var.truenas_host
+  ssh_user                     = var.ssh_user
+  ssh_key_path                 = var.ssh_key_path
+  ssh_strict_host_key_checking = true
+  ssh_timeout_seconds          = 30
 }
 
 data "truenas_vm_guest_info" "nextcloud" {
-  vm_name      = "nextcloud"
-  truenas_host = var.truenas_host
-  ssh_user     = var.ssh_user
-  ssh_key_path = var.ssh_key_path
+  vm_name                      = "nextcloud"
+  truenas_host                 = var.truenas_host
+  ssh_user                     = var.ssh_user
+  ssh_key_path                 = var.ssh_key_path
+  ssh_strict_host_key_checking = true
+  ssh_timeout_seconds          = 30
 }
+
+# Example: Using password authentication (requires sshpass)
+# data "truenas_vm_guest_info" "windows" {
+#   vm_name                      = "windows-vm"
+#   truenas_host                 = var.truenas_host
+#   ssh_user                     = var.ssh_user
+#   ssh_password                 = var.truenas_ssh_password
+#   ssh_strict_host_key_checking = false # Disable for dynamic hosts
+#   ssh_timeout_seconds          = 60    # Longer timeout for slower networks
+# }
 
 # Collect all IPs from all VMs
 locals {

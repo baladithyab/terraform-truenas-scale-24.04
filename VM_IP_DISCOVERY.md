@@ -65,6 +65,22 @@ sudo arp-scan --localnet | grep "00:a0:98:66:a6:bd"
 
 ## Method 2: Guest Agent Query
 
+### Important: Authentication Validation
+
+**New in this release**: The provider now validates SSH authentication **before** attempting to query the guest agent. This means:
+
+- ✅ Clear error messages if authentication fails
+- ✅ Faster feedback on configuration issues
+- ✅ No wasted time attempting guest agent queries with wrong credentials
+- ✅ Better security through early validation
+
+If authentication fails, you'll see an error like:
+```
+Error: Failed to authenticate with TrueNAS host: ssh: handshake failed: ssh: unable to authenticate
+```
+
+This helps you fix authentication issues before attempting costly guest agent operations.
+
 ### Prerequisites
 
 1. **Install QEMU Guest Agent in VM:**
@@ -107,6 +123,10 @@ data "truenas_vm_guest_info" "ubuntu" {
   truenas_host = "10.0.0.83"
   ssh_user     = "root"
   ssh_key_path = "~/.ssh/truenas_key"
+  
+  # Optional: Enhanced security and timeout options
+  ssh_strict_host_key_checking = true   # Enable strict host key checking
+  ssh_timeout_seconds          = 30     # Set SSH timeout (default: 10)
 }
 
 output "ubuntu_info" {
@@ -117,6 +137,28 @@ output "ubuntu_info" {
   }
 }
 ```
+
+### Configuration Options
+
+The `truenas_vm_guest_info` data source supports the following authentication and security options:
+
+**Required:**
+- `vm_name` - Name of the VM to query
+- `truenas_host` - TrueNAS hostname or IP address
+- `ssh_user` - SSH user (typically "root")
+
+**Authentication (choose one):**
+- `ssh_key_path` - Path to SSH private key file
+- `ssh_password` - SSH password (sensitive)
+
+**Optional Security & Timeout:**
+- `ssh_strict_host_key_checking` - Enable strict SSH host key checking (default: `false`)
+  - When `true`: SSH will fail if host key is not in known_hosts
+  - When `false`: SSH will accept any host key (less secure, but easier for automation)
+  - **Use `true` in production** for better security
+- `ssh_timeout_seconds` - SSH connection timeout in seconds (default: `10`)
+  - Increase if TrueNAS is slow to respond
+  - Useful for high-latency networks or busy systems
 
 ### Pros & Cons
 
@@ -293,6 +335,91 @@ ssh -i ~/.ssh/truenas_key root@10.0.0.83 \
 # List all VMs to verify name
 ssh -i ~/.ssh/truenas_key root@10.0.0.83 "virsh list --all"
 ```
+
+### SSH Authentication Errors
+
+**Problem**: "Failed to authenticate with TrueNAS host"
+
+**Error Message**: Provider now validates authentication **before attempting to query** the guest agent
+
+**Possible Causes:**
+1. Wrong SSH key path
+2. Wrong SSH password
+3. Wrong username
+4. SSH service not running on TrueNAS
+5. Firewall blocking SSH access
+
+**Solutions:**
+```bash
+# Test SSH key authentication
+ssh -i ~/.ssh/truenas_key root@10.0.0.83 "echo 'Authentication successful'"
+
+# Test SSH password authentication
+sshpass -p 'your-password' ssh root@10.0.0.83 "echo 'Authentication successful'"
+
+# Check SSH service on TrueNAS
+ssh root@10.0.0.83 "systemctl status ssh"
+
+# Test from Terraform
+terraform plan -target=data.truenas_vm_guest_info.example
+```
+
+### Host Key Verification Failed
+
+**Problem**: "Host key verification failed"
+
+**Cause**: TrueNAS host key is not in known_hosts file, and `ssh_strict_host_key_checking = true`
+
+**Solutions:**
+
+**Option 1: Add host key to known_hosts (recommended for production)**
+```bash
+# Add TrueNAS host key to known_hosts
+ssh-keyscan -H 10.0.0.83 >> ~/.ssh/known_hosts
+
+# Or connect once manually to accept
+ssh root@10.0.0.83
+```
+
+**Option 2: Disable strict host key checking (for development only)**
+```hcl
+data "truenas_vm_guest_info" "example" {
+  vm_name                      = "my-vm"
+  truenas_host                 = "10.0.0.83"
+  ssh_user                     = "root"
+  ssh_key_path                 = "~/.ssh/truenas_key"
+  ssh_strict_host_key_checking = false  # Accept any host key
+}
+```
+
+### SSH Timeout
+
+**Problem**: "SSH connection timed out"
+
+**Cause**: TrueNAS is slow to respond, or network latency is high
+
+**Solution**: Increase the SSH timeout
+```hcl
+data "truenas_vm_guest_info" "example" {
+  vm_name             = "my-vm"
+  truenas_host        = "10.0.0.83"
+  ssh_user            = "root"
+  ssh_key_path        = "~/.ssh/truenas_key"
+  ssh_timeout_seconds = 30  # Increase from default 10 seconds
+}
+```
+
+### Common Error Messages
+
+| Error Message | Meaning | Solution |
+|---------------|---------|----------|
+| "Failed to authenticate with TrueNAS host" | SSH authentication failed before querying guest agent | Check SSH credentials and connectivity |
+| "Failed to execute SSH command" | SSH connected but command execution failed | Check SSH user permissions and virsh access |
+| "Failed to query guest agent" | Guest agent not responding or VM not found | Check guest agent installation and VM name |
+| "Failed to parse guest agent response" | Guest agent returned invalid JSON | Check guest agent version compatibility |
+| "No IP addresses found in guest agent response" | VM doesn't have network interfaces or IPs assigned | Check VM network configuration |
+| "Host key verification failed" | SSH host key not trusted | Add host key to known_hosts or disable strict checking |
+| "Connection timed out" | SSH connection took too long | Increase `ssh_timeout_seconds` |
 
 ---
 

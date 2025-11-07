@@ -6,7 +6,7 @@ This document tracks the implementation status of TrueNAS Scale 24.04 REST API e
 
 The TrueNAS Scale 24.04 API contains **148,765 lines** of OpenAPI specification with hundreds of endpoints across 80+ categories.
 
-**Current Coverage:** 14 resources, 2 data sources (~2.2% of 643 total endpoints)
+**Current Coverage:** 15 resources, 10 data sources (~2.5% of 643 total endpoints)
 
 ## ⚠️ Important Version Information
 
@@ -36,23 +36,22 @@ All features listed below ARE implemented in the codebase and will be available 
   - Users & Groups: Users ✅, Groups ✅
   - Network: Interfaces ✅, Static Routes ✅
 
-- 🟡 **Partially Implemented Categories (3)**:
-  - Virtual Machines: Basic VM ✅ (devices, lifecycle operations planned)
+- 🟡 **Partially Implemented Categories (2)**:
+  - Virtual Machines: VM ✅, VM Device ✅, Lifecycle ✅ (advanced features planned)
   - iSCSI: Target ✅, Extent ✅, Portal ✅ (initiator, auth, associations planned)
-  - Kubernetes: Chart Releases ✅ (cluster config, catalogs planned)
 
 - 🔜 **High Priority Planned (5)**: Replication, Cloud Sync, Services, Certificates, Cron Jobs
 
 **Metrics:**
-- 📊 **Total Resources**: 14 (started with 5, added 9)
-- 🎯 **Import Support**: 100% (all 14 resources)
-- 📚 **Documentation**: 10 comprehensive guides
-- 🚀 **Special Features**: Kubernetes migration to external clusters
-- 📈 **API Coverage**: ~2.2% (14 of 643 endpoints)
+- 📊 **Total Resources**: 15 (started with 5, added 10)
+- 🎯 **Import Support**: 100% (all 15 resources)
+- 📚 **Documentation**: 11 comprehensive guides
+- 🚀 **Special Features**: Kubernetes migration, VM lifecycle management
+- 📈 **API Coverage**: ~2.5% (15 of 643 endpoints)
 
 ## Implementation Status
 
-### ✅ Fully Implemented (14 resources, 2 data sources)
+### ✅ Fully Implemented (15 resources, 10 data sources)
 
 All resources include:
 - ✅ Full CRUD operations (Create, Read, Update, Delete)
@@ -60,7 +59,7 @@ All resources include:
 - ✅ Comprehensive examples
 - ✅ Documentation
 
-#### Storage & File Sharing (3 resources)
+#### Storage & File Sharing (5 resources)
 1. **`truenas_dataset`** - ZFS dataset management
    - API: `/pool/dataset`
    - Features: Compression, quotas, reservations, ZFS properties
@@ -76,74 +75,120 @@ All resources include:
    - Features: Guest access, recycle bin, shadow copies
    - Import: By share ID
 
+4. **`truenas_snapshot`** - ZFS snapshot management
+   - API: `/zfs/snapshot`
+   - Features: Recursive snapshots, VMware sync
+   - Import: By `dataset@snapshotname`
+
+5. **`truenas_periodic_snapshot_task`** - Automated snapshot scheduling
+   - API: `/pool/snapshottask`
+   - Features: Cron scheduling, retention policies, exclusions
+   - Import: By task ID
+
 #### User Management (2 resources)
-4. **`truenas_user`** - User account management
+6. **`truenas_user`** - User account management
    - API: `/user`
    - Features: Passwords, SSH keys, home directories, sudo
    - Import: By user ID
 
-5. **`truenas_group`** - Group management
+7. **`truenas_group`** - Group management
    - API: `/group`
    - Features: User assignments, sudo, SMB settings
    - Import: By group ID
 
-#### Virtual Machines (1 resource)
-6. **`truenas_vm`** - Virtual machine management
+#### Virtual Machines (2 resources) ✨
+8. **`truenas_vm`** - Virtual machine management
    - API: `/vm`
-   - Features: CPU/memory config, bootloader, autostart
+   - Features: CPU/memory config, bootloader, autostart, **lifecycle management with desired_state**
+   - **New**: `desired_state` attribute for VM lifecycle (RUNNING/STOPPED)
    - Import: By VM name
 
+9. **`truenas_vm_device`** - Standalone VM device management
+   - API: `/vm/device`
+   - Features: Manage NICs, disks, CDROMs, and PCI devices independently
+   - Supports all device types: DISK, NIC, CDROM, PCI, RAW, DISPLAY
+   - Import: By device ID
+
 #### iSCSI (3 resources)
-7. **`truenas_iscsi_target`** - iSCSI target management
-   - API: `/iscsi/target`
-   - Features: IQN-based targets, portal associations
-   - Import: By target ID
+10. **`truenas_iscsi_target`** - iSCSI target management
+    - API: `/iscsi/target`
+    - Features: IQN-based targets, portal associations
+    - Import: By target ID
 
-8. **`truenas_iscsi_extent`** - iSCSI extent management
-   - API: `/iscsi/extent`
-   - Features: FILE/DISK types, block sizes, read-only
-   - Import: By extent ID
+11. **`truenas_iscsi_extent`** - iSCSI extent management
+    - API: `/iscsi/extent`
+    - Features: FILE/DISK types, block sizes, read-only
+    - Import: By extent ID
 
-9. **`truenas_iscsi_portal`** - iSCSI portal management
-   - API: `/iscsi/portal`
-   - Features: Listen addresses, CHAP auth
-   - Import: By portal ID
+12. **`truenas_iscsi_portal`** - iSCSI portal management
+    - API: `/iscsi/portal`
+    - Features: Listen addresses, CHAP auth
+    - Import: By portal ID
 
 #### Network (2 resources)
-10. **`truenas_interface`** - Network interface management
+13. **`truenas_interface`** - Network interface management
     - API: `/interface`
     - Features: PHYSICAL, VLAN, BRIDGE, LAG types
     - Import: By interface name
 
-11. **`truenas_static_route`** - Static route management
+14. **`truenas_static_route`** - Static route management
     - API: `/staticroute`
     - Features: CIDR destinations, gateway IPs
     - Import: By route ID
 
-#### Kubernetes/Apps (1 resource) ✨
-12. **`truenas_chart_release`** - Kubernetes application deployment
+#### Kubernetes/Apps (1 resource)
+15. **`truenas_chart_release`** - Kubernetes application deployment
     - API: `/chart/release`
     - Features: Catalog apps, JSON values, version management
     - **Special**: Migration support to external K8s clusters
     - Import: By release name
 
-#### Snapshots (2 resources) ✨
-13. **`truenas_snapshot`** - ZFS snapshot management
-    - API: `/zfs/snapshot`
-    - Features: Recursive snapshots, VMware sync
-    - Import: By `dataset@snapshotname`
+#### Data Sources (10)
 
-14. **`truenas_periodic_snapshot_task`** - Automated snapshot scheduling
-    - API: `/pool/snapshottask`
-    - Features: Cron scheduling, retention policies, exclusions
-    - Import: By task ID
-
-#### Data Sources (2)
+**Storage & Discovery**
 - **`truenas_dataset`** - Query dataset information
   - API: `/pool/dataset/id/{id}`
+  - Returns: Dataset properties, quotas, compression settings
 
 - **`truenas_pool`** - Query pool information
   - API: `/pool/id/{id}`
+  - Returns: Pool status, capacity, health information
+
+**VM Discovery & Management**
+- **`truenas_vm`** - Query specific VM by name or ID
+  - API: `/vm/id/{id}` or `/vm?name={name}`
+  - Returns: Complete VM configuration and status
+
+- **`truenas_vms`** - List all VMs with status
+  - API: `/vm`
+  - Returns: All VMs with their current state and resources
+
+- **`truenas_vm_guest_info`** - Query QEMU guest agent for VM details
+  - API: SSH + virsh qemu-agent-command
+  - Returns: IP addresses, hostname, OS name/version
+  - **New Features**: `ssh_strict_host_key_checking`, `ssh_timeout_seconds`, authentication validation
+
+**Share Discovery**
+- **`truenas_nfs_shares`** - List all NFS shares
+  - API: `/sharing/nfs`
+  - Returns: All NFS shares with paths and configuration
+
+- **`truenas_smb_shares`** - List all SMB/CIFS shares
+  - API: `/sharing/smb`
+  - Returns: All SMB shares with names and settings
+
+**GPU & PCI Passthrough**
+- **`truenas_gpu_pci_choices`** - Discover available GPUs
+  - API: `/vm/device/gpu_pci_choices`
+  - Returns: Available GPUs with PCI addresses
+
+- **`truenas_vm_pci_passthrough_devices`** - List PCI passthrough devices
+  - API: `/vm/device/passthrough_device_choices`
+  - Returns: Available PCI devices with IOMMU groups
+
+- **`truenas_vm_iommu_enabled`** - Check IOMMU status
+  - API: `/vm/iommu_enabled`
+  - Returns: Boolean indicating if IOMMU is enabled
 
 ### 🎯 Special Features
 
@@ -169,27 +214,27 @@ The provider includes comprehensive Kubernetes app migration capabilities:
 
 ### � Partially Implemented - Additional Features Available
 
-#### Virtual Machines (46 endpoints) - Basic VM ✅, Advanced Features 🔜
+#### Virtual Machines (46 endpoints) - VM ✅, Devices ✅, Lifecycle ✅
 **Implemented:**
 - `/vm` - VM CRUD operations ✅ IMPLEMENTED
+- `/vm/device` - VM device management ✅ IMPLEMENTED
+- `/vm/id/{id}/start` - Start VM ✅ IMPLEMENTED (via desired_state)
+- `/vm/id/{id}/stop` - Stop VM ✅ IMPLEMENTED (via desired_state)
 
 **Planned:**
-- `/vm/device` - VM device management 🔜 PLANNED
-- `/vm/id/{id}/start` - Start VM 🔜 PLANNED
-- `/vm/id/{id}/stop` - Stop VM 🔜 PLANNED
 - `/vm/id/{id}/restart` - Restart VM 🔜 PLANNED
 - `/vm/id/{id}/suspend` - Suspend VM 🔜 PLANNED
 - `/vm/id/{id}/resume` - Resume VM 🔜 PLANNED
 - `/vm/id/{id}/clone` - Clone VM 🔜 PLANNED
 - `/vm/get_console` - Get console access 🔜 PLANNED
-- `/vm/device/disk_choices` - Available disks 🔜 PLANNED
-- `/vm/device/nic_attach_choices` - Network options 🔜 PLANNED
-- `/vm/device/passthrough_device` - PCI passthrough 🔜 PLANNED
+- `/vm/device/disk_choices` - Available disks (✅ via data source)
+- `/vm/device/nic_attach_choices` - Network options (✅ via data source)
+- `/vm/device/passthrough_device` - PCI passthrough (✅ via data source)
 - `/vm/device/usb_passthrough_device` - USB passthrough 🔜 PLANNED
 
 **Terraform Resources:**
-- `truenas_vm` ✅ IMPLEMENTED (basic VM management)
-- `truenas_vm_device` 🔜 PLANNED (advanced device management)
+- `truenas_vm` ✅ IMPLEMENTED (VM management with lifecycle control)
+- `truenas_vm_device` ✅ IMPLEMENTED (standalone device management)
 
 #### iSCSI (32 endpoints) - Core Features ✅, Advanced Features 🔜
 **Implemented:**
@@ -402,14 +447,14 @@ The provider includes comprehensive Kubernetes app migration capabilities:
 **Goal**: Enterprise features
 - 🔜 Active Directory integration
 - 🔜 LDAP configuration
-- 🔜 Advanced VM features (devices, lifecycle)
+- ✅ VM features (devices ✅, lifecycle ✅) - COMPLETE
 - 🔜 Advanced iSCSI (initiators, auth)
 
 ## API Categories Summary
 
 Total API categories: **80+**
 Total endpoints: **643**
-Implemented: **14 resources** (~2.2% coverage)
+Implemented: **15 resources** (~2.5% coverage)
 
 | Category | Endpoints | Implemented | Status | Priority |
 |----------|-----------|-------------|--------|----------|
@@ -420,7 +465,7 @@ Implemented: **14 resources** (~2.2% coverage)
 | **network** | 3 | 1 | ✅ Complete (static_route ✅) | ✅ Done |
 | **snapshot** | 4 | 2 | ✅ Complete (snapshot ✅, periodic_task ✅) | ✅ Done |
 | **pool** | 67 | 1 | 🟡 Partial (dataset ✅, snapshots ✅) | Medium |
-| **vm** | 46 | 1 | 🟡 Partial (vm ✅, devices planned) | Medium |
+| **vm** | 46 | 2 | ✅ Complete (vm ✅, vm_device ✅, lifecycle ✅) | ✅ Done |
 | **iscsi** | 32 | 3 | 🟡 Partial (target ✅, extent ✅, portal ✅) | Medium |
 | **kubernetes** | 10 | 1 | 🟡 Partial (chart_release ✅, cluster planned) | Medium |
 | **replication** | 12 | 0 | 🔜 Planned | High |

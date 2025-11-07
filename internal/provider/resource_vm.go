@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+	"strings"
+	"time"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
@@ -40,6 +42,7 @@ type VMResourceModel struct {
 	MinMemory           types.Int64  `tfsdk:"min_memory"`
 	Autostart           types.Bool   `tfsdk:"autostart"`
 	StartOnCreate       types.Bool   `tfsdk:"start_on_create"`
+	DesiredState        types.String `tfsdk:"desired_state"`
 	Bootloader          types.String `tfsdk:"bootloader"`
 	CPUMode             types.String `tfsdk:"cpu_mode"`
 	CPUModel            types.String `tfsdk:"cpu_model"`
@@ -153,8 +156,14 @@ func (r *VMResource) Schema(ctx context.Context, req resource.SchemaRequest, res
 				Computed:            true,
 			},
 			"start_on_create": schema.BoolAttribute{
-				MarkdownDescription: "Start VM immediately after creation (default: false)",
+				MarkdownDescription: "**Deprecated:** Use `desired_state` instead. Start VM immediately after creation (default: false). This attribute is deprecated in favor of `desired_state` which provides more control over VM lifecycle.",
 				Optional:            true,
+				DeprecationMessage:  "Use desired_state instead for more granular control over VM lifecycle state",
+			},
+			"desired_state": schema.StringAttribute{
+				MarkdownDescription: "Desired state of the VM. Valid values: `RUNNING`, `STOPPED`, `SUSPENDED`. If not specified, defaults to `STOPPED`. This attribute controls the VM's lifecycle state and takes precedence over `start_on_create` if both are specified.",
+				Optional:            true,
+				Computed:            true,
 			},
 			"bootloader": schema.StringAttribute{
 				MarkdownDescription: "Bootloader type (UEFI, UEFI_CSM, GRUB)",
@@ -487,18 +496,21 @@ func (r *VMResource) Create(ctx context.Context, req resource.CreateRequest, res
 		return
 	}
 
-	// Start VM if start_on_create is true
-	if !data.StartOnCreate.IsNull() && data.StartOnCreate.ValueBool() {
-		startEndpoint := fmt.Sprintf("/vm/id/%s/start", data.ID.ValueString())
-		_, err := r.client.Post(startEndpoint, nil)
-		if err != nil {
-			resp.Diagnostics.AddWarning(
-				"VM Start Warning",
-				fmt.Sprintf("VM created successfully but failed to start: %s. You can start it manually.", err),
-			)
-		}
+	// Determine desired state for the VM
+	// Priority: desired_state > start_on_create > default (STOPPED)
+	desiredState := "STOPPED"
+	
+	if !data.DesiredState.IsNull() && data.DesiredState.ValueString() != "" {
+		// Use explicit desired_state if provided
+		desiredState = data.DesiredState.ValueString()
+	} else if !data.StartOnCreate.IsNull() && data.StartOnCreate.ValueBool() {
+		// Fall back to start_on_create for backward compatibility
+		desiredState = "RUNNING"
 	}
-
+	
+	// Transition VM to desired state
+	r.transitionVMState(ctx, data.ID.ValueString(), desiredState, &resp.Diagnostics)
+	
 	r.readVM(ctx, &data, &resp.Diagnostics)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
@@ -575,6 +587,11 @@ func (r *VMResource) Update(ctx context.Context, req resource.UpdateRequest, res
 		return
 	}
 
+	// Handle state transitions if desired_state is specified
+	if !data.DesiredState.IsNull() && data.DesiredState.ValueString() != "" {
+		r.transitionVMState(ctx, data.ID.ValueString(), data.DesiredState.ValueString(), &resp.Diagnostics)
+	}
+
 	r.readVM(ctx, &data, &resp.Diagnostics)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
@@ -597,6 +614,162 @@ func (r *VMResource) Delete(ctx context.Context, req resource.DeleteRequest, res
 
 func (r *VMResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
+}
+
+// getCurrentVMState retrieves the current state of the VM
+func (r *VMResource) getCurrentVMState(vmID string) (string, error) {
+	result, err := r.client.GetVMStatus(vmID)
+	if err != nil {
+		return "", err
+	}
+	
+	if status, ok := result["status"].(map[string]interface{}); ok {
+		if state, ok := status["state"].(string); ok {
+			return strings.ToUpper(state), nil
+		}
+	}
+	
+	return "", fmt.Errorf("unable to determine VM state")
+}
+
+// transitionVMState transitions the VM to the desired state with retry logic
+func (r *VMResource) transitionVMState(ctx context.Context, vmID string, desiredState string, diags *diag.Diagnostics) {
+	if desiredState == "" {
+		// No desired state specified, don't attempt transition
+		return
+	}
+	
+	// Normalize desired state to uppercase
+	desiredState = strings.ToUpper(desiredState)
+	
+	// Validate desired state
+	validStates := map[string]bool{
+		"RUNNING":   true,
+		"STOPPED":   true,
+		"SUSPENDED": true,
+	}
+	
+	if !validStates[desiredState] {
+		diags.AddError(
+			"Invalid Desired State",
+			fmt.Sprintf("desired_state must be one of: RUNNING, STOPPED, SUSPENDED. Got: %s", desiredState),
+		)
+		return
+	}
+	
+	// Get current state
+	currentState, err := r.getCurrentVMState(vmID)
+	if err != nil {
+		diags.AddWarning(
+			"VM State Check Warning",
+			fmt.Sprintf("Unable to check current VM state: %s", err),
+		)
+		return
+	}
+	
+	// If already in desired state, nothing to do
+	if currentState == desiredState {
+		return
+	}
+	
+	// Define state transition logic
+	var transitionErr error
+	maxRetries := 3
+	retryDelay := 5 * time.Second
+	timeout := 5 * time.Minute
+	
+	for attempt := 0; attempt < maxRetries; attempt++ {
+		if attempt > 0 {
+			time.Sleep(retryDelay)
+		}
+		
+		// Re-check current state before attempting transition
+		currentState, err = r.getCurrentVMState(vmID)
+		if err != nil {
+			transitionErr = err
+			continue
+		}
+		
+		// If already in desired state, we're done
+		if currentState == desiredState {
+			return
+		}
+		
+		// Perform state transition based on current and desired states
+		switch {
+		case desiredState == "RUNNING" && currentState == "STOPPED":
+			_, transitionErr = r.client.StartVM(vmID)
+		case desiredState == "RUNNING" && currentState == "SUSPENDED":
+			_, transitionErr = r.client.ResumeVM(vmID)
+		case desiredState == "STOPPED" && currentState == "RUNNING":
+			// Try graceful stop first
+			_, transitionErr = r.client.StopVM(vmID)
+			if transitionErr != nil {
+				// If graceful stop fails, try power off
+				time.Sleep(2 * time.Second)
+				_, transitionErr = r.client.PowerOffVM(vmID)
+			}
+		case desiredState == "STOPPED" && currentState == "SUSPENDED":
+			// Resume first, then stop
+			_, err = r.client.ResumeVM(vmID)
+			if err != nil {
+				transitionErr = err
+				continue
+			}
+			time.Sleep(2 * time.Second)
+			_, transitionErr = r.client.StopVM(vmID)
+			if transitionErr != nil {
+				time.Sleep(2 * time.Second)
+				_, transitionErr = r.client.PowerOffVM(vmID)
+			}
+		case desiredState == "SUSPENDED" && currentState == "RUNNING":
+			_, transitionErr = r.client.SuspendVM(vmID)
+		case desiredState == "SUSPENDED" && currentState == "STOPPED":
+			// Start first, then suspend
+			_, err = r.client.StartVM(vmID)
+			if err != nil {
+				transitionErr = err
+				continue
+			}
+			time.Sleep(2 * time.Second)
+			_, transitionErr = r.client.SuspendVM(vmID)
+		default:
+			diags.AddWarning(
+				"Unsupported State Transition",
+				fmt.Sprintf("Cannot transition from %s to %s", currentState, desiredState),
+			)
+			return
+		}
+		
+		if transitionErr != nil {
+			continue
+		}
+		
+		// Wait for state transition to complete
+		startTime := time.Now()
+		for time.Since(startTime) < timeout {
+			time.Sleep(2 * time.Second)
+			
+			newState, err := r.getCurrentVMState(vmID)
+			if err != nil {
+				continue
+			}
+			
+			if newState == desiredState {
+				return
+			}
+		}
+		
+		transitionErr = fmt.Errorf("timeout waiting for VM to reach %s state", desiredState)
+	}
+	
+	// If we get here, all retries failed
+	if transitionErr != nil {
+		diags.AddWarning(
+			"VM State Transition Warning",
+			fmt.Sprintf("Unable to transition VM to %s state after %d attempts: %s. You may need to manually manage the VM state.", desiredState, maxRetries, transitionErr),
+		)
+	}
 }
 
 func (r *VMResource) readVM(ctx context.Context, data *VMResourceModel, diags *diag.Diagnostics) {
@@ -712,6 +885,13 @@ func (r *VMResource) readVM(ctx context.Context, data *VMResourceModel, diags *d
 	if status, ok := result["status"].(map[string]interface{}); ok {
 		if state, ok := status["state"].(string); ok {
 			data.Status = types.StringValue(state)
+			
+			// Set DesiredState to current state if not explicitly set
+			// This ensures the computed value reflects the actual state
+			if data.DesiredState.IsNull() || data.DesiredState.IsUnknown() {
+				normalizedState := strings.ToUpper(state)
+				data.DesiredState = types.StringValue(normalizedState)
+			}
 		}
 	}
 
