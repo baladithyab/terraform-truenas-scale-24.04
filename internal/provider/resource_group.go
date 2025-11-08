@@ -243,4 +243,3 @@ func (r *GroupResource) readGroup(ctx context.Context, data *GroupResourceModel,
 		data.SmbAuth = types.BoolValue(smb)
 	}
 }
-

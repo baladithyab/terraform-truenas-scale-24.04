@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"strconv"
 
-
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -169,4 +168,3 @@ func (d *PoolDataSource) Read(ctx context.Context, req datasource.ReadRequest, r
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
-

@@ -22,7 +22,7 @@ type GPUPCIChoicesDataSource struct {
 }
 
 type GPUPCIChoicesDataSourceModel struct {
-	ID      types.String          `tfsdk:"id"`
+	ID      types.String            `tfsdk:"id"`
 	Choices map[string]types.String `tfsdk:"choices"`
 }
 
@@ -91,4 +91,3 @@ func (d *GPUPCIChoicesDataSource) Read(ctx context.Context, req datasource.ReadR
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
-

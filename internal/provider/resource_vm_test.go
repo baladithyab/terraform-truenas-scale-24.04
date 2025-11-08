@@ -172,8 +172,8 @@ func TestVMUpdate_PreservesComputedStringFields(t *testing.T) {
 		Name:       types.StringValue("test-vm"),
 		Memory:     types.Int64Value(4096),
 		VCPUs:      types.Int64Value(2),
-		Bootloader: types.StringNull(),  // Not set in plan
-		CPUMode:    types.StringNull(),  // Not set in plan
+		Bootloader: types.StringNull(), // Not set in plan
+		CPUMode:    types.StringNull(), // Not set in plan
 	}
 
 	state := VMResourceModel{
@@ -181,7 +181,7 @@ func TestVMUpdate_PreservesComputedStringFields(t *testing.T) {
 		Name:       types.StringValue("test-vm"),
 		Memory:     types.Int64Value(4096),
 		VCPUs:      types.Int64Value(2),
-		Bootloader: types.StringValue("UEFI"), // From API
+		Bootloader: types.StringValue("UEFI"),       // From API
 		CPUMode:    types.StringValue("HOST-MODEL"), // From API
 	}
 
@@ -311,26 +311,26 @@ func TestVMUpdate_MinMemoryHandling(t *testing.T) {
 		minMemoryToSend = plan2.Memory.ValueInt64()
 	}
 
-	assert.Equal(t, plan2.Memory.ValueInt64(), minMemoryToSend, 
+	assert.Equal(t, plan2.Memory.ValueInt64(), minMemoryToSend,
 		"MinMemory should default to Memory value when not set")
 }
 
 // TestVMUpdate_BooleanFieldHandling tests that boolean fields are handled correctly
 func TestVMUpdate_BooleanFieldHandling(t *testing.T) {
 	plan := VMResourceModel{
-		ID:           types.StringValue("1"),
-		Name:         types.StringValue("test-vm"),
-		Memory:       types.Int64Value(4096),
-		Autostart:    types.BoolValue(true),  // Changed from false
-		HideFromMSR:  types.BoolValue(false), // Unchanged
+		ID:          types.StringValue("1"),
+		Name:        types.StringValue("test-vm"),
+		Memory:      types.Int64Value(4096),
+		Autostart:   types.BoolValue(true),  // Changed from false
+		HideFromMSR: types.BoolValue(false), // Unchanged
 	}
 
 	state := VMResourceModel{
-		ID:           types.StringValue("1"),
-		Name:         types.StringValue("test-vm"),
-		Memory:       types.Int64Value(4096),
-		Autostart:    types.BoolValue(false),
-		HideFromMSR:  types.BoolValue(false),
+		ID:          types.StringValue("1"),
+		Name:        types.StringValue("test-vm"),
+		Memory:      types.Int64Value(4096),
+		Autostart:   types.BoolValue(false),
+		HideFromMSR: types.BoolValue(false),
 	}
 
 	// Autostart changed, HideFromMSR unchanged
@@ -357,13 +357,13 @@ func TestVMLifecycle_StateTransitions(t *testing.T) {
 		{"STOPPED to SUSPENDED", "STOPPED", "SUSPENDED", true},
 		{"SUSPENDED to STOPPED", "SUSPENDED", "STOPPED", true},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Test the state value assignment
 			initialState := types.StringValue(tt.fromState)
 			newState := types.StringValue(tt.toState)
-			
+
 			assert.NotEqual(t, initialState, newState, "States should be different")
 			assert.NotEmpty(t, newState.ValueString(), "New state should not be empty")
 		})
@@ -378,7 +378,7 @@ func TestVMLifecycle_DefaultState(t *testing.T) {
 		VCPUs:  types.Int64Value(2),
 		// DesiredState not set - should default appropriately
 	}
-	
+
 	// Verify the model can be created without desired_state
 	assert.Equal(t, "test-vm", vm.Name.ValueString())
 	assert.True(t, vm.DesiredState.IsNull(), "DesiredState should be null if not set")
@@ -389,10 +389,10 @@ func TestVMLifecycle_DeprecatedPriority(t *testing.T) {
 	// When both are set, desired_state should take priority
 	vm := VMResourceModel{
 		Name:          types.StringValue("test-vm"),
-		StartOnCreate: types.BoolValue(false), // Deprecated: says don't start
+		StartOnCreate: types.BoolValue(false),       // Deprecated: says don't start
 		DesiredState:  types.StringValue("RUNNING"), // New: says start
 	}
-	
+
 	// desired_state should have priority
 	assert.Equal(t, "RUNNING", vm.DesiredState.ValueString())
 	assert.False(t, vm.StartOnCreate.ValueBool())
@@ -401,7 +401,7 @@ func TestVMLifecycle_DeprecatedPriority(t *testing.T) {
 // Test valid state values
 func TestVMLifecycle_ValidStates(t *testing.T) {
 	validStates := []string{"RUNNING", "STOPPED", "SUSPENDED"}
-	
+
 	for _, state := range validStates {
 		vm := VMResourceModel{
 			DesiredState: types.StringValue(state),
@@ -414,7 +414,7 @@ func TestVMLifecycle_ValidStates(t *testing.T) {
 func TestVMLifecycle_StateChangeDetection(t *testing.T) {
 	oldState := types.StringValue("STOPPED")
 	newState := types.StringValue("RUNNING")
-	
+
 	// Test detection logic
 	assert.False(t, oldState.Equal(newState), "States should not be equal")
 	assert.NotEqual(t, oldState.ValueString(), newState.ValueString())
@@ -426,7 +426,7 @@ func TestVMLifecycle_StartOnCreateBackwardCompat(t *testing.T) {
 		StartOnCreate: types.BoolValue(true),
 		DesiredState:  types.StringNull(), // Not set
 	}
-	
+
 	// Should respect start_on_create when desired_state not set
 	assert.True(t, vm.StartOnCreate.ValueBool())
 	assert.True(t, vm.DesiredState.IsNull())

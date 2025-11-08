@@ -270,4 +270,3 @@ func (r *ISCSITargetResource) readISCSITarget(ctx context.Context, data *ISCSITa
 		data.AuthNetworks = list
 	}
 }
-

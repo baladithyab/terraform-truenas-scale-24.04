@@ -24,17 +24,17 @@ func NewVMGuestInfoDataSource() datasource.DataSource {
 type VMGuestInfoDataSource struct{}
 
 type VMGuestInfoDataSourceModel struct {
-	VMName                    types.String `tfsdk:"vm_name"`
-	TrueNASHost               types.String `tfsdk:"truenas_host"`
-	SSHUser                   types.String `tfsdk:"ssh_user"`
-	SSHKeyPath                types.String `tfsdk:"ssh_key_path"`
-	SSHPassword               types.String `tfsdk:"ssh_password"`
-	SSHStrictHostKeyChecking  types.Bool   `tfsdk:"ssh_strict_host_key_checking"`
-	SSHTimeoutSeconds         types.Int64  `tfsdk:"ssh_timeout_seconds"`
-	IPAddresses               types.List   `tfsdk:"ip_addresses"`
-	Hostname                  types.String `tfsdk:"hostname"`
-	OSName                    types.String `tfsdk:"os_name"`
-	OSVersion                 types.String `tfsdk:"os_version"`
+	VMName                   types.String `tfsdk:"vm_name"`
+	TrueNASHost              types.String `tfsdk:"truenas_host"`
+	SSHUser                  types.String `tfsdk:"ssh_user"`
+	SSHKeyPath               types.String `tfsdk:"ssh_key_path"`
+	SSHPassword              types.String `tfsdk:"ssh_password"`
+	SSHStrictHostKeyChecking types.Bool   `tfsdk:"ssh_strict_host_key_checking"`
+	SSHTimeoutSeconds        types.Int64  `tfsdk:"ssh_timeout_seconds"`
+	IPAddresses              types.List   `tfsdk:"ip_addresses"`
+	Hostname                 types.String `tfsdk:"hostname"`
+	OSName                   types.String `tfsdk:"os_name"`
+	OSVersion                types.String `tfsdk:"os_version"`
 }
 
 func (d *VMGuestInfoDataSource) Metadata(ctx context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
@@ -180,7 +180,7 @@ func (d *VMGuestInfoDataSource) Read(ctx context.Context, req datasource.ReadReq
 	// Build SSH command based on authentication method
 	var sshCmd string
 	usePassword := !data.SSHPassword.IsNull() && data.SSHPassword.ValueString() != ""
-	
+
 	if usePassword {
 		// Check if sshpass is available
 		if _, err := exec.LookPath("sshpass"); err != nil {
@@ -226,9 +226,9 @@ func (d *VMGuestInfoDataSource) Read(ctx context.Context, req datasource.ReadReq
 		// Provide better error diagnostics
 		outputStr := string(output)
 		errorMsg := err.Error()
-		
+
 		var diagTitle, diagDetail string
-		
+
 		// Analyze the error to provide specific guidance
 		if strings.Contains(errorMsg, "connection timed out") || strings.Contains(outputStr, "Connection timed out") {
 			diagTitle = "SSH Connection Timeout"
@@ -310,9 +310,9 @@ func (d *VMGuestInfoDataSource) Read(ctx context.Context, req datasource.ReadReq
 				vmName, errorMsg, outputStr, networkCmd, sshUser, trueNASHost, sshUser, trueNASHost,
 			)
 		}
-		
+
 		resp.Diagnostics.AddError(diagTitle, diagDetail)
-		
+
 		// Set empty values
 		data.IPAddresses = types.ListNull(types.StringType)
 		data.Hostname = types.StringNull()

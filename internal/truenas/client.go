@@ -105,6 +105,7 @@ func (c *Client) Delete(endpoint string) ([]byte, error) {
 func (c *Client) DeleteWithBody(endpoint string, body interface{}) ([]byte, error) {
 	return c.DoRequest(http.MethodDelete, endpoint, body)
 }
+
 // Patch performs a PATCH request
 func (c *Client) Patch(endpoint string, body interface{}) ([]byte, error) {
 	return c.DoRequest(http.MethodPatch, endpoint, body)
@@ -163,14 +164,15 @@ func (c *Client) GetVMStatus(id string) (map[string]interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
-	
+
 	var result map[string]interface{}
 	if err := json.Unmarshal(respBody, &result); err != nil {
 		return nil, fmt.Errorf("error unmarshaling VM status: %w", err)
 	}
-	
+
 	return result, nil
 }
+
 // CreateVMDevice creates a new VM device
 func (c *Client) CreateVMDevice(device map[string]interface{}) ([]byte, error) {
 	return c.Post("/vm/device", device)
@@ -187,5 +189,3 @@ func (c *Client) DeleteVMDevice(id string) ([]byte, error) {
 	endpoint := fmt.Sprintf("/vm/device/id/%s", id)
 	return c.Delete(endpoint)
 }
-
-

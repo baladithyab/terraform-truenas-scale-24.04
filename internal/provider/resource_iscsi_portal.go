@@ -29,11 +29,11 @@ type ISCSIPortalResource struct {
 }
 
 type ISCSIPortalResourceModel struct {
-	ID                   types.String `tfsdk:"id"`
-	Comment              types.String `tfsdk:"comment"`
-	DiscoveryAuthMethod  types.String `tfsdk:"discovery_authmethod"`
-	DiscoveryAuthGroup   types.Int64  `tfsdk:"discovery_authgroup"`
-	Listen               types.List   `tfsdk:"listen"`
+	ID                  types.String `tfsdk:"id"`
+	Comment             types.String `tfsdk:"comment"`
+	DiscoveryAuthMethod types.String `tfsdk:"discovery_authmethod"`
+	DiscoveryAuthGroup  types.Int64  `tfsdk:"discovery_authgroup"`
+	Listen              types.List   `tfsdk:"listen"`
 }
 
 type ISCSIPortalListen struct {
@@ -132,7 +132,7 @@ func (r *ISCSIPortalResource) Create(ctx context.Context, req resource.CreateReq
 	// Parse listen addresses
 	var listenList []ISCSIPortalListen
 	data.Listen.ElementsAs(ctx, &listenList, false)
-	
+
 	listen := make([]map[string]interface{}, 0, len(listenList))
 	for _, l := range listenList {
 		entry := map[string]interface{}{
@@ -206,7 +206,7 @@ func (r *ISCSIPortalResource) Update(ctx context.Context, req resource.UpdateReq
 	// Parse listen addresses
 	var listenList []ISCSIPortalListen
 	data.Listen.ElementsAs(ctx, &listenList, false)
-	
+
 	listen := make([]map[string]interface{}, 0, len(listenList))
 	for _, l := range listenList {
 		entry := map[string]interface{}{
@@ -275,7 +275,7 @@ func (r *ISCSIPortalResource) readISCSIPortal(ctx context.Context, data *ISCSIPo
 	if authgroup, ok := result["discovery_authgroup"].(float64); ok {
 		data.DiscoveryAuthGroup = types.Int64Value(int64(authgroup))
 	}
-	
+
 	if listen, ok := result["listen"].([]interface{}); ok {
 		listenList := make([]ISCSIPortalListen, 0, len(listen))
 		for _, l := range listen {
@@ -299,4 +299,3 @@ func (r *ISCSIPortalResource) readISCSIPortal(ctx context.Context, data *ISCSIPo
 		data.Listen = list
 	}
 }
-

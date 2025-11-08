@@ -84,4 +84,3 @@ func (d *VMIOMMUEnabledDataSource) Read(ctx context.Context, req datasource.Read
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
-

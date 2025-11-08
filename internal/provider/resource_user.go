@@ -28,19 +28,19 @@ type UserResource struct {
 }
 
 type UserResourceModel struct {
-	ID          types.String `tfsdk:"id"`
-	UID         types.Int64  `tfsdk:"uid"`
-	Username    types.String `tfsdk:"username"`
-	FullName    types.String `tfsdk:"full_name"`
-	Email       types.String `tfsdk:"email"`
-	Password    types.String `tfsdk:"password"`
-	Group       types.Int64  `tfsdk:"group"`
-	Home        types.String `tfsdk:"home"`
-	Shell       types.String `tfsdk:"shell"`
-	SshPubkey   types.String `tfsdk:"sshpubkey"`
-	Locked      types.Bool   `tfsdk:"locked"`
-	Sudo        types.Bool   `tfsdk:"sudo"`
-	SmbAuth     types.Bool   `tfsdk:"smb"`
+	ID        types.String `tfsdk:"id"`
+	UID       types.Int64  `tfsdk:"uid"`
+	Username  types.String `tfsdk:"username"`
+	FullName  types.String `tfsdk:"full_name"`
+	Email     types.String `tfsdk:"email"`
+	Password  types.String `tfsdk:"password"`
+	Group     types.Int64  `tfsdk:"group"`
+	Home      types.String `tfsdk:"home"`
+	Shell     types.String `tfsdk:"shell"`
+	SshPubkey types.String `tfsdk:"sshpubkey"`
+	Locked    types.Bool   `tfsdk:"locked"`
+	Sudo      types.Bool   `tfsdk:"sudo"`
+	SmbAuth   types.Bool   `tfsdk:"smb"`
 }
 
 func (r *UserResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -333,4 +333,3 @@ func (r *UserResource) readUser(ctx context.Context, data *UserResourceModel, di
 		data.Shell = types.StringValue(shell)
 	}
 }
-

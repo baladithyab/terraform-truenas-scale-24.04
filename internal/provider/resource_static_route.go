@@ -211,4 +211,3 @@ func (r *StaticRouteResource) readStaticRoute(ctx context.Context, data *StaticR
 		data.Description = types.StringValue(description)
 	}
 }
-

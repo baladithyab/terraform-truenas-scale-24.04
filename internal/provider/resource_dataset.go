@@ -1,19 +1,18 @@
 package provider
 
 import (
-	"net/url"
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/url"
 	"strconv"
-		"strings"
-
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
-		"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
@@ -50,14 +49,14 @@ type DatasetResourceModel struct {
 	ReadOnly    types.String `tfsdk:"readonly"`
 	Exec        types.String `tfsdk:"exec"`
 	Sync        types.String `tfsdk:"sync"`
-		// Destroy-time options
-		ForceDestroy     types.Bool   `tfsdk:"force_destroy"`
-		RecursiveDestroy types.Bool   `tfsdk:"recursive_destroy"`
+	// Destroy-time options
+	ForceDestroy     types.Bool `tfsdk:"force_destroy"`
+	RecursiveDestroy types.Bool `tfsdk:"recursive_destroy"`
 
-	SnapDir     types.String `tfsdk:"snapdir"`
-	Copies      types.Int64  `tfsdk:"copies"`
-	RecordSize  types.String `tfsdk:"recordsize"`
-	Volsize     types.Int64  `tfsdk:"volsize"` // Volume size in bytes (required for VOLUME type)
+	SnapDir    types.String `tfsdk:"snapdir"`
+	Copies     types.Int64  `tfsdk:"copies"`
+	RecordSize types.String `tfsdk:"recordsize"`
+	Volsize    types.Int64  `tfsdk:"volsize"` // Volume size in bytes (required for VOLUME type)
 }
 
 func (r *DatasetResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -162,19 +161,18 @@ func (r *DatasetResource) Schema(ctx context.Context, req resource.SchemaRequest
 				Optional:            true,
 				Computed:            true,
 			},
-				"force_destroy": schema.BoolAttribute{
-					MarkdownDescription: "Force destroy dataset by deleting snapshots and forcing busy dataset deletion",
-					Optional:            true,
+			"force_destroy": schema.BoolAttribute{
+				MarkdownDescription: "Force destroy dataset by deleting snapshots and forcing busy dataset deletion",
+				Optional:            true,
 				Computed:            true,
-					Default:             booldefault.StaticBool(false),
-				},
-				"recursive_destroy": schema.BoolAttribute{
-					MarkdownDescription: "Recursively delete child datasets when destroying this dataset",
-					Optional:            true,
+				Default:             booldefault.StaticBool(false),
+			},
+			"recursive_destroy": schema.BoolAttribute{
+				MarkdownDescription: "Recursively delete child datasets when destroying this dataset",
+				Optional:            true,
 				Computed:            true,
-					Default:             booldefault.StaticBool(false),
-				},
-
+				Default:             booldefault.StaticBool(false),
+			},
 		},
 	}
 }
@@ -455,7 +453,6 @@ func (r *DatasetResource) Delete(ctx context.Context, req resource.DeleteRequest
 	}
 }
 
-
 // deleteSnapshots removes all snapshots belonging to the provided datasetID (matching prefix "<dataset>@").
 func (r *DatasetResource) deleteSnapshots(ctx context.Context, datasetID string, diags *diag.Diagnostics) error {
 	respBody, err := r.client.Get("/zfs/snapshot")
@@ -701,4 +698,3 @@ func (r *DatasetResource) readDataset(ctx context.Context, data *DatasetResource
 		data.Volsize = types.Int64Null()
 	}
 }
-

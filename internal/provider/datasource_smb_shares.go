@@ -238,4 +238,3 @@ func (d *SMBSharesDataSource) Read(ctx context.Context, req datasource.ReadReque
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
-

@@ -195,7 +195,7 @@ func (r *InterfaceResource) Create(ctx context.Context, req resource.CreateReque
 	if !data.Aliases.IsNull() {
 		var aliasList []InterfaceAlias
 		data.Aliases.ElementsAs(ctx, &aliasList, false)
-		
+
 		aliases := make([]map[string]interface{}, 0, len(aliasList))
 		for _, a := range aliasList {
 			alias := map[string]interface{}{
@@ -358,4 +358,3 @@ func (r *InterfaceResource) readInterface(ctx context.Context, data *InterfaceRe
 		data.MTU = types.Int64Value(int64(mtu))
 	}
 }
-

@@ -51,11 +51,11 @@ func TestVMDevice_NICConfigRequiredFields(t *testing.T) {
 // TestVMDevice_DISKConfigValidation tests DISK config validation
 func TestVMDevice_DISKConfigValidation(t *testing.T) {
 	diskConfig := DiskConfigModel{
-		Path:                types.StringValue("/dev/zvol/pool/disk"),
-		Type:                types.StringValue("VIRTIO"),
-		IOType:              types.StringValue("THREADS"),
-		PhysicalSectorSize:  types.Int64Value(512),
-		LogicalSectorSize:   types.Int64Value(512),
+		Path:               types.StringValue("/dev/zvol/pool/disk"),
+		Type:               types.StringValue("VIRTIO"),
+		IOType:             types.StringValue("THREADS"),
+		PhysicalSectorSize: types.Int64Value(512),
+		LogicalSectorSize:  types.Int64Value(512),
 	}
 
 	assert.Equal(t, "/dev/zvol/pool/disk", diskConfig.Path.ValueString())
@@ -321,9 +321,9 @@ func TestVMDevice_DiskSectorSizes(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			disk := DiskConfigModel{
-				Path:                types.StringValue("/dev/zvol/pool/disk"),
-				PhysicalSectorSize:  types.Int64Value(tc.physical),
-				LogicalSectorSize:   types.Int64Value(tc.logical),
+				Path:               types.StringValue("/dev/zvol/pool/disk"),
+				PhysicalSectorSize: types.Int64Value(tc.physical),
+				LogicalSectorSize:  types.Int64Value(tc.logical),
 			}
 			assert.Equal(t, tc.physical, disk.PhysicalSectorSize.ValueInt64())
 			assert.Equal(t, tc.logical, disk.LogicalSectorSize.ValueInt64())

@@ -28,18 +28,18 @@ type SMBShareResource struct {
 }
 
 type SMBShareResourceModel struct {
-	ID          types.String `tfsdk:"id"`
-	Name        types.String `tfsdk:"name"`
-	Path        types.String `tfsdk:"path"`
-	Comment     types.String `tfsdk:"comment"`
-	Enabled     types.Bool   `tfsdk:"enabled"`
-	Browsable   types.Bool   `tfsdk:"browsable"`
-	Guestok     types.Bool   `tfsdk:"guestok"`
-	ReadOnly    types.Bool   `tfsdk:"readonly"`
-	Recyclebin  types.Bool   `tfsdk:"recyclebin"`
-	Shadowcopy  types.Bool   `tfsdk:"shadowcopy"`
-	Hostsallow  types.List   `tfsdk:"hostsallow"`
-	Hostsdeny   types.List   `tfsdk:"hostsdeny"`
+	ID         types.String `tfsdk:"id"`
+	Name       types.String `tfsdk:"name"`
+	Path       types.String `tfsdk:"path"`
+	Comment    types.String `tfsdk:"comment"`
+	Enabled    types.Bool   `tfsdk:"enabled"`
+	Browsable  types.Bool   `tfsdk:"browsable"`
+	Guestok    types.Bool   `tfsdk:"guestok"`
+	ReadOnly   types.Bool   `tfsdk:"readonly"`
+	Recyclebin types.Bool   `tfsdk:"recyclebin"`
+	Shadowcopy types.Bool   `tfsdk:"shadowcopy"`
+	Hostsallow types.List   `tfsdk:"hostsallow"`
+	Hostsdeny  types.List   `tfsdk:"hostsdeny"`
 }
 
 func (r *SMBShareResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -310,4 +310,3 @@ func (r *SMBShareResource) readSMBShare(ctx context.Context, data *SMBShareResou
 		data.Enabled = types.BoolValue(enabled)
 	}
 }
-

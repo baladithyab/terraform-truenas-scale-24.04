@@ -341,4 +341,3 @@ func (r *ISCSIExtentResource) readISCSIExtent(ctx context.Context, data *ISCSIEx
 		data.Blocksize = types.Int64Value(int64(blocksize))
 	}
 }
-

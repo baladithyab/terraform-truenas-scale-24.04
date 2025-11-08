@@ -28,16 +28,16 @@ type NFSShareResource struct {
 }
 
 type NFSShareResourceModel struct {
-	ID          types.String `tfsdk:"id"`
-	Path        types.String `tfsdk:"path"`
-	Comment     types.String `tfsdk:"comment"`
-	Networks    types.List   `tfsdk:"networks"`
-	Hosts       types.List   `tfsdk:"hosts"`
-	ReadOnly    types.Bool   `tfsdk:"readonly"`
-	Maproot     types.String `tfsdk:"maproot_user"`
-	Mapall      types.String `tfsdk:"mapall_user"`
-	Security    types.List   `tfsdk:"security"`
-	Enabled     types.Bool   `tfsdk:"enabled"`
+	ID       types.String `tfsdk:"id"`
+	Path     types.String `tfsdk:"path"`
+	Comment  types.String `tfsdk:"comment"`
+	Networks types.List   `tfsdk:"networks"`
+	Hosts    types.List   `tfsdk:"hosts"`
+	ReadOnly types.Bool   `tfsdk:"readonly"`
+	Maproot  types.String `tfsdk:"maproot_user"`
+	Mapall   types.String `tfsdk:"mapall_user"`
+	Security types.List   `tfsdk:"security"`
+	Enabled  types.Bool   `tfsdk:"enabled"`
 }
 
 func (r *NFSShareResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -150,7 +150,7 @@ func (r *NFSShareResource) Create(ctx context.Context, req resource.CreateReques
 		resp.Diagnostics.Append(data.Hosts.ElementsAs(ctx, &hosts, false)...)
 		createReq["hosts"] = hosts
 	} else {
-		createReq["hosts"] = []string{}  // Default: allow all hosts
+		createReq["hosts"] = []string{} // Default: allow all hosts
 	}
 
 	if !data.ReadOnly.IsNull() {
@@ -169,7 +169,7 @@ func (r *NFSShareResource) Create(ctx context.Context, req resource.CreateReques
 		resp.Diagnostics.Append(data.Security.ElementsAs(ctx, &security, false)...)
 		createReq["security"] = security
 	} else {
-		createReq["security"] = []string{}  // Default: no security restrictions
+		createReq["security"] = []string{} // Default: no security restrictions
 	}
 
 	if !data.Enabled.IsNull() {
@@ -400,4 +400,3 @@ func (r *NFSShareResource) readNFSShare(ctx context.Context, data *NFSShareResou
 		data.Mapall = types.StringNull()
 	}
 }
-

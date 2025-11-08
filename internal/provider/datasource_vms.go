@@ -212,4 +212,3 @@ func (d *VMsDataSource) Read(ctx context.Context, req datasource.ReadRequest, re
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
-

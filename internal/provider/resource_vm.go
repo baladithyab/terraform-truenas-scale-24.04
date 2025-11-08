@@ -13,8 +13,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/terraform-providers/terraform-provider-truenas/internal/truenas"
@@ -61,20 +61,20 @@ type VMResourceModel struct {
 }
 
 type NICDeviceModel struct {
-	Type                 types.String `tfsdk:"type"`
-	MAC                  types.String `tfsdk:"mac"`
-	NICAttach            types.String `tfsdk:"nic_attach"`
-	TrustGuestRxFilters  types.Bool   `tfsdk:"trust_guest_rx_filters"`
-	Order                types.Int64  `tfsdk:"order"`
+	Type                types.String `tfsdk:"type"`
+	MAC                 types.String `tfsdk:"mac"`
+	NICAttach           types.String `tfsdk:"nic_attach"`
+	TrustGuestRxFilters types.Bool   `tfsdk:"trust_guest_rx_filters"`
+	Order               types.Int64  `tfsdk:"order"`
 }
 
 type DiskDeviceModel struct {
-	Path                types.String `tfsdk:"path"`
-	Type                types.String `tfsdk:"type"`
-	IOType              types.String `tfsdk:"iotype"`
-	PhysicalSectorSize  types.Int64  `tfsdk:"physical_sectorsize"`
-	LogicalSectorSize   types.Int64  `tfsdk:"logical_sectorsize"`
-	Order               types.Int64  `tfsdk:"order"`
+	Path               types.String `tfsdk:"path"`
+	Type               types.String `tfsdk:"type"`
+	IOType             types.String `tfsdk:"iotype"`
+	PhysicalSectorSize types.Int64  `tfsdk:"physical_sectorsize"`
+	LogicalSectorSize  types.Int64  `tfsdk:"logical_sectorsize"`
+	Order              types.Int64  `tfsdk:"order"`
 }
 
 type CDROMDeviceModel struct {
@@ -499,7 +499,7 @@ func (r *VMResource) Create(ctx context.Context, req resource.CreateRequest, res
 	// Determine desired state for the VM
 	// Priority: desired_state > start_on_create > default (STOPPED)
 	desiredState := "STOPPED"
-	
+
 	if !data.DesiredState.IsNull() && data.DesiredState.ValueString() != "" {
 		// Use explicit desired_state if provided
 		desiredState = data.DesiredState.ValueString()
@@ -507,10 +507,10 @@ func (r *VMResource) Create(ctx context.Context, req resource.CreateRequest, res
 		// Fall back to start_on_create for backward compatibility
 		desiredState = "RUNNING"
 	}
-	
+
 	// Transition VM to desired state
 	r.transitionVMState(ctx, data.ID.ValueString(), desiredState, &resp.Diagnostics)
-	
+
 	r.readVM(ctx, &data, &resp.Diagnostics)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
@@ -687,13 +687,13 @@ func (r *VMResource) getCurrentVMState(vmID string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	
+
 	if status, ok := result["status"].(map[string]interface{}); ok {
 		if state, ok := status["state"].(string); ok {
 			return strings.ToUpper(state), nil
 		}
 	}
-	
+
 	return "", fmt.Errorf("unable to determine VM state")
 }
 
@@ -703,17 +703,17 @@ func (r *VMResource) transitionVMState(ctx context.Context, vmID string, desired
 		// No desired state specified, don't attempt transition
 		return
 	}
-	
+
 	// Normalize desired state to uppercase
 	desiredState = strings.ToUpper(desiredState)
-	
+
 	// Validate desired state
 	validStates := map[string]bool{
 		"RUNNING":   true,
 		"STOPPED":   true,
 		"SUSPENDED": true,
 	}
-	
+
 	if !validStates[desiredState] {
 		diags.AddError(
 			"Invalid Desired State",
@@ -721,7 +721,7 @@ func (r *VMResource) transitionVMState(ctx context.Context, vmID string, desired
 		)
 		return
 	}
-	
+
 	// Get current state
 	currentState, err := r.getCurrentVMState(vmID)
 	if err != nil {
@@ -731,35 +731,35 @@ func (r *VMResource) transitionVMState(ctx context.Context, vmID string, desired
 		)
 		return
 	}
-	
+
 	// If already in desired state, nothing to do
 	if currentState == desiredState {
 		return
 	}
-	
+
 	// Define state transition logic
 	var transitionErr error
 	maxRetries := 3
 	retryDelay := 5 * time.Second
 	timeout := 5 * time.Minute
-	
+
 	for attempt := 0; attempt < maxRetries; attempt++ {
 		if attempt > 0 {
 			time.Sleep(retryDelay)
 		}
-		
+
 		// Re-check current state before attempting transition
 		currentState, err = r.getCurrentVMState(vmID)
 		if err != nil {
 			transitionErr = err
 			continue
 		}
-		
+
 		// If already in desired state, we're done
 		if currentState == desiredState {
 			return
 		}
-		
+
 		// Perform state transition based on current and desired states
 		switch {
 		case desiredState == "RUNNING" && currentState == "STOPPED":
@@ -805,29 +805,29 @@ func (r *VMResource) transitionVMState(ctx context.Context, vmID string, desired
 			)
 			return
 		}
-		
+
 		if transitionErr != nil {
 			continue
 		}
-		
+
 		// Wait for state transition to complete
 		startTime := time.Now()
 		for time.Since(startTime) < timeout {
 			time.Sleep(2 * time.Second)
-			
+
 			newState, err := r.getCurrentVMState(vmID)
 			if err != nil {
 				continue
 			}
-			
+
 			if newState == desiredState {
 				return
 			}
 		}
-		
+
 		transitionErr = fmt.Errorf("timeout waiting for VM to reach %s state", desiredState)
 	}
-	
+
 	// If we get here, all retries failed
 	if transitionErr != nil {
 		diags.AddWarning(
@@ -950,7 +950,7 @@ func (r *VMResource) readVM(ctx context.Context, data *VMResourceModel, diags *d
 	if status, ok := result["status"].(map[string]interface{}); ok {
 		if state, ok := status["state"].(string); ok {
 			data.Status = types.StringValue(state)
-			
+
 			// Set DesiredState to current state if not explicitly set
 			// This ensures the computed value reflects the actual state
 			if data.DesiredState.IsNull() || data.DesiredState.IsUnknown() {
@@ -1141,11 +1141,11 @@ func (r *VMResource) readVM(ctx context.Context, data *VMResourceModel, diags *d
 	if len(nics) > 0 {
 		nicList, diagErr := types.ListValueFrom(ctx, types.ObjectType{
 			AttrTypes: map[string]attr.Type{
-				"type":                    types.StringType,
-				"mac":                     types.StringType,
-				"nic_attach":              types.StringType,
-				"trust_guest_rx_filters":  types.BoolType,
-				"order":                   types.Int64Type,
+				"type":                   types.StringType,
+				"mac":                    types.StringType,
+				"nic_attach":             types.StringType,
+				"trust_guest_rx_filters": types.BoolType,
+				"order":                  types.Int64Type,
 			},
 		}, nics)
 		if diagErr.HasError() {
@@ -1156,11 +1156,11 @@ func (r *VMResource) readVM(ctx context.Context, data *VMResourceModel, diags *d
 	} else {
 		data.NICDevices = types.ListNull(types.ObjectType{
 			AttrTypes: map[string]attr.Type{
-				"type":                    types.StringType,
-				"mac":                     types.StringType,
-				"nic_attach":              types.StringType,
-				"trust_guest_rx_filters":  types.BoolType,
-				"order":                   types.Int64Type,
+				"type":                   types.StringType,
+				"mac":                    types.StringType,
+				"nic_attach":             types.StringType,
+				"trust_guest_rx_filters": types.BoolType,
+				"order":                  types.Int64Type,
 			},
 		})
 	}
@@ -1168,12 +1168,12 @@ func (r *VMResource) readVM(ctx context.Context, data *VMResourceModel, diags *d
 	if len(disks) > 0 {
 		diskList, diagErr := types.ListValueFrom(ctx, types.ObjectType{
 			AttrTypes: map[string]attr.Type{
-				"path":                  types.StringType,
-				"type":                  types.StringType,
-				"iotype":                types.StringType,
-				"physical_sectorsize":   types.Int64Type,
-				"logical_sectorsize":    types.Int64Type,
-				"order":                 types.Int64Type,
+				"path":                types.StringType,
+				"type":                types.StringType,
+				"iotype":              types.StringType,
+				"physical_sectorsize": types.Int64Type,
+				"logical_sectorsize":  types.Int64Type,
+				"order":               types.Int64Type,
 			},
 		}, disks)
 		if diagErr.HasError() {
@@ -1184,12 +1184,12 @@ func (r *VMResource) readVM(ctx context.Context, data *VMResourceModel, diags *d
 	} else {
 		data.DiskDevices = types.ListNull(types.ObjectType{
 			AttrTypes: map[string]attr.Type{
-				"path":                  types.StringType,
-				"type":                  types.StringType,
-				"iotype":                types.StringType,
-				"physical_sectorsize":   types.Int64Type,
-				"logical_sectorsize":    types.Int64Type,
-				"order":                 types.Int64Type,
+				"path":                types.StringType,
+				"type":                types.StringType,
+				"iotype":              types.StringType,
+				"physical_sectorsize": types.Int64Type,
+				"logical_sectorsize":  types.Int64Type,
+				"order":               types.Int64Type,
 			},
 		})
 	}
@@ -1509,4 +1509,3 @@ func (r *VMResource) createDevices(ctx context.Context, data *VMResourceModel, d
 		}
 	}
 }
-

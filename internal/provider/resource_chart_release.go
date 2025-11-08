@@ -273,4 +273,3 @@ func (r *ChartReleaseResource) readChartRelease(ctx context.Context, data *Chart
 		data.Values = types.StringValue(string(configJSON))
 	}
 }
-

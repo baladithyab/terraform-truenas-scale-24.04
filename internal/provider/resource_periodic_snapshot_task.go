@@ -340,4 +340,3 @@ func (r *PeriodicSnapshotTaskResource) readPeriodicSnapshotTask(ctx context.Cont
 		data.Schedule = types.StringValue(cronStr)
 	}
 }
-

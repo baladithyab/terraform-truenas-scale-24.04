@@ -28,12 +28,12 @@ type SnapshotResource struct {
 }
 
 type SnapshotResourceModel struct {
-	ID        types.String `tfsdk:"id"`
-	Dataset   types.String `tfsdk:"dataset"`
-	Name      types.String `tfsdk:"name"`
-	Recursive types.Bool   `tfsdk:"recursive"`
-	VMSync    types.String `tfsdk:"vmware_sync"`
-	Properties types.Map   `tfsdk:"properties"`
+	ID         types.String `tfsdk:"id"`
+	Dataset    types.String `tfsdk:"dataset"`
+	Name       types.String `tfsdk:"name"`
+	Recursive  types.Bool   `tfsdk:"recursive"`
+	VMSync     types.String `tfsdk:"vmware_sync"`
+	Properties types.Map    `tfsdk:"properties"`
 }
 
 func (r *SnapshotResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -228,4 +228,3 @@ func (r *SnapshotResource) readSnapshot(ctx context.Context, data *SnapshotResou
 		data.Properties = propTypes
 	}
 }
-

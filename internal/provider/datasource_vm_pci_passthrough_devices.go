@@ -23,20 +23,20 @@ type VMPCIPassthroughDevicesDataSource struct {
 }
 
 type VMPCIPassthroughDevicesDataSourceModel struct {
-	ID              types.String `tfsdk:"id"`
-	AvailableOnly   types.Bool   `tfsdk:"available_only"`
-	Devices         types.Map    `tfsdk:"devices"`
+	ID            types.String `tfsdk:"id"`
+	AvailableOnly types.Bool   `tfsdk:"available_only"`
+	Devices       types.Map    `tfsdk:"devices"`
 }
 
 type PCIPassthroughDevice struct {
-	PCIAddress       types.String `tfsdk:"pci_address"`
-	Description      types.String `tfsdk:"description"`
-	ControllerType   types.String `tfsdk:"controller_type"`
-	Available        types.Bool   `tfsdk:"available"`
-	Critical         types.Bool   `tfsdk:"critical"`
-	IOMMUGroup       types.Int64  `tfsdk:"iommu_group"`
-	Vendor           types.String `tfsdk:"vendor"`
-	Product          types.String `tfsdk:"product"`
+	PCIAddress     types.String `tfsdk:"pci_address"`
+	Description    types.String `tfsdk:"description"`
+	ControllerType types.String `tfsdk:"controller_type"`
+	Available      types.Bool   `tfsdk:"available"`
+	Critical       types.Bool   `tfsdk:"critical"`
+	IOMMUGroup     types.Int64  `tfsdk:"iommu_group"`
+	Vendor         types.String `tfsdk:"vendor"`
+	Product        types.String `tfsdk:"product"`
 }
 
 func (d *VMPCIPassthroughDevicesDataSource) Metadata(ctx context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
@@ -122,7 +122,7 @@ func (d *VMPCIPassthroughDevicesDataSource) Read(ctx context.Context, req dataso
 
 	// Build the devices map
 	devices := make(map[string]attr.Value)
-	
+
 	for deviceID, deviceData := range result {
 		deviceMap, ok := deviceData.(map[string]interface{})
 		if !ok {
@@ -251,4 +251,3 @@ func (d *VMPCIPassthroughDevicesDataSource) Read(ctx context.Context, req dataso
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
-

@@ -30,32 +30,32 @@ type VMDeviceResource struct {
 }
 
 type VMDeviceResourceModel struct {
-	ID          types.String `tfsdk:"id"`
-	VMID        types.String `tfsdk:"vm_id"`
-	DeviceType  types.String `tfsdk:"device_type"`
-	Order       types.Int64  `tfsdk:"order"`
-	NICConfig   types.List   `tfsdk:"nic_config"`
-	DiskConfig  types.List   `tfsdk:"disk_config"`
-	CDROMConfig types.List   `tfsdk:"cdrom_config"`
-	PCIConfig   types.List   `tfsdk:"pci_config"`
-	USBConfig   types.List   `tfsdk:"usb_config"`
-	DisplayConfig types.List `tfsdk:"display_config"`
-	RAWConfig   types.List   `tfsdk:"raw_config"`
+	ID            types.String `tfsdk:"id"`
+	VMID          types.String `tfsdk:"vm_id"`
+	DeviceType    types.String `tfsdk:"device_type"`
+	Order         types.Int64  `tfsdk:"order"`
+	NICConfig     types.List   `tfsdk:"nic_config"`
+	DiskConfig    types.List   `tfsdk:"disk_config"`
+	CDROMConfig   types.List   `tfsdk:"cdrom_config"`
+	PCIConfig     types.List   `tfsdk:"pci_config"`
+	USBConfig     types.List   `tfsdk:"usb_config"`
+	DisplayConfig types.List   `tfsdk:"display_config"`
+	RAWConfig     types.List   `tfsdk:"raw_config"`
 }
 
 type NICConfigModel struct {
-	Type                 types.String `tfsdk:"type"`
-	MAC                  types.String `tfsdk:"mac"`
-	NICAttach            types.String `tfsdk:"nic_attach"`
-	TrustGuestRxFilters  types.Bool   `tfsdk:"trust_guest_rx_filters"`
+	Type                types.String `tfsdk:"type"`
+	MAC                 types.String `tfsdk:"mac"`
+	NICAttach           types.String `tfsdk:"nic_attach"`
+	TrustGuestRxFilters types.Bool   `tfsdk:"trust_guest_rx_filters"`
 }
 
 type DiskConfigModel struct {
-	Path                types.String `tfsdk:"path"`
-	Type                types.String `tfsdk:"type"`
-	IOType              types.String `tfsdk:"iotype"`
-	PhysicalSectorSize  types.Int64  `tfsdk:"physical_sectorsize"`
-	LogicalSectorSize   types.Int64  `tfsdk:"logical_sectorsize"`
+	Path               types.String `tfsdk:"path"`
+	Type               types.String `tfsdk:"type"`
+	IOType             types.String `tfsdk:"iotype"`
+	PhysicalSectorSize types.Int64  `tfsdk:"physical_sectorsize"`
+	LogicalSectorSize  types.Int64  `tfsdk:"logical_sectorsize"`
 }
 
 type CDROMConfigModel struct {
@@ -791,10 +791,10 @@ func (r *VMDeviceResource) readVMDevice(ctx context.Context, data *VMDeviceResou
 			}
 			nicList, diagErr := types.ListValueFrom(ctx, types.ObjectType{
 				AttrTypes: map[string]attr.Type{
-					"type":                    types.StringType,
-					"mac":                     types.StringType,
-					"nic_attach":              types.StringType,
-					"trust_guest_rx_filters":  types.BoolType,
+					"type":                   types.StringType,
+					"mac":                    types.StringType,
+					"nic_attach":             types.StringType,
+					"trust_guest_rx_filters": types.BoolType,
 				},
 			}, []NICConfigModel{nic})
 			if diagErr.HasError() {
@@ -822,11 +822,11 @@ func (r *VMDeviceResource) readVMDevice(ctx context.Context, data *VMDeviceResou
 			}
 			diskList, diagErr := types.ListValueFrom(ctx, types.ObjectType{
 				AttrTypes: map[string]attr.Type{
-					"path":                  types.StringType,
-					"type":                  types.StringType,
-					"iotype":                types.StringType,
-					"physical_sectorsize":   types.Int64Type,
-					"logical_sectorsize":    types.Int64Type,
+					"path":                types.StringType,
+					"type":                types.StringType,
+					"iotype":              types.StringType,
+					"physical_sectorsize": types.Int64Type,
+					"logical_sectorsize":  types.Int64Type,
 				},
 			}, []DiskConfigModel{disk})
 			if diagErr.HasError() {
