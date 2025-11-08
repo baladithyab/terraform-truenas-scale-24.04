@@ -532,55 +532,120 @@ func (r *VMResource) Read(ctx context.Context, req resource.ReadRequest, resp *r
 }
 
 func (r *VMResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	var data VMResourceModel
+	var plan VMResourceModel
+	var state VMResourceModel
 
-	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	updateReq := map[string]interface{}{}
+	// Build update payload with only changed, valid values
+	updateReq := make(map[string]interface{})
 
-	if !data.Name.IsNull() {
-		updateReq["name"] = data.Name.ValueString()
+	// Name - required field, always send if explicitly set and different
+	if !plan.Name.IsNull() && !plan.Name.Equal(state.Name) {
+		updateReq["name"] = plan.Name.ValueString()
 	}
-	if !data.Description.IsNull() {
-		updateReq["description"] = data.Description.ValueString()
+
+	// Description - optional string field
+	if !plan.Description.IsNull() && !plan.Description.Equal(state.Description) {
+		updateReq["description"] = plan.Description.ValueString()
 	}
-	if !data.Memory.IsNull() {
-		updateReq["memory"] = data.Memory.ValueInt64()
+
+	// Memory - required field, must be > 0
+	if !plan.Memory.IsNull() && plan.Memory.ValueInt64() > 0 && !plan.Memory.Equal(state.Memory) {
+		updateReq["memory"] = plan.Memory.ValueInt64()
 	}
-	if !data.VCPUs.IsNull() {
-		updateReq["vcpus"] = data.VCPUs.ValueInt64()
+
+	// VCPUs - computed field, preserve state if plan doesn't provide valid value
+	if !plan.VCPUs.IsNull() && plan.VCPUs.ValueInt64() > 0 && !plan.VCPUs.Equal(state.VCPUs) {
+		updateReq["vcpus"] = plan.VCPUs.ValueInt64()
+	} else if !state.VCPUs.IsNull() && state.VCPUs.ValueInt64() > 0 {
+		// Preserve state value to avoid sending zero
+		updateReq["vcpus"] = state.VCPUs.ValueInt64()
 	}
-	if !data.Cores.IsNull() {
-		updateReq["cores"] = data.Cores.ValueInt64()
+
+	// Cores - computed field, must be > 0 if set
+	if !plan.Cores.IsNull() && plan.Cores.ValueInt64() > 0 && !plan.Cores.Equal(state.Cores) {
+		updateReq["cores"] = plan.Cores.ValueInt64()
+	} else if !state.Cores.IsNull() && state.Cores.ValueInt64() > 0 {
+		// Preserve state value to avoid sending zero
+		updateReq["cores"] = state.Cores.ValueInt64()
 	}
-	if !data.Threads.IsNull() {
-		updateReq["threads"] = data.Threads.ValueInt64()
+
+	// Threads - computed field, must be > 0 if set
+	if !plan.Threads.IsNull() && plan.Threads.ValueInt64() > 0 && !plan.Threads.Equal(state.Threads) {
+		updateReq["threads"] = plan.Threads.ValueInt64()
+	} else if !state.Threads.IsNull() && state.Threads.ValueInt64() > 0 {
+		// Preserve state value to avoid sending zero
+		updateReq["threads"] = state.Threads.ValueInt64()
 	}
-	// Set min_memory: if explicitly provided, use that value; otherwise default to memory value
-	// This disables memory ballooning by default, preventing "virtio_balloon: Out of puff!" errors
-	if !data.MinMemory.IsNull() && data.MinMemory.ValueInt64() > 0 {
-		updateReq["min_memory"] = data.MinMemory.ValueInt64()
-	} else {
+
+	// MinMemory - handle memory ballooning
+	if !plan.MinMemory.IsNull() && plan.MinMemory.ValueInt64() > 0 && !plan.MinMemory.Equal(state.MinMemory) {
+		updateReq["min_memory"] = plan.MinMemory.ValueInt64()
+	} else if !state.MinMemory.IsNull() && state.MinMemory.ValueInt64() > 0 {
+		// Preserve state value
+		updateReq["min_memory"] = state.MinMemory.ValueInt64()
+	} else if !plan.Memory.IsNull() && plan.Memory.ValueInt64() > 0 {
 		// Default to memory value to disable ballooning
-		updateReq["min_memory"] = data.Memory.ValueInt64()
-	}
-	if !data.Autostart.IsNull() {
-		updateReq["autostart"] = data.Autostart.ValueBool()
-	}
-	if !data.Bootloader.IsNull() {
-		updateReq["bootloader"] = data.Bootloader.ValueString()
-	}
-	if !data.CPUMode.IsNull() {
-		updateReq["cpu_mode"] = data.CPUMode.ValueString()
-	}
-	if !data.CPUModel.IsNull() {
-		updateReq["cpu_model"] = data.CPUModel.ValueString()
+		updateReq["min_memory"] = plan.Memory.ValueInt64()
 	}
 
-	endpoint := fmt.Sprintf("/vm/id/%s", data.ID.ValueString())
+	// Autostart - boolean field
+	if !plan.Autostart.IsNull() && !plan.Autostart.Equal(state.Autostart) {
+		updateReq["autostart"] = plan.Autostart.ValueBool()
+	}
+
+	// Bootloader - computed field, must not be empty
+	if !plan.Bootloader.IsNull() && plan.Bootloader.ValueString() != "" && !plan.Bootloader.Equal(state.Bootloader) {
+		updateReq["bootloader"] = plan.Bootloader.ValueString()
+	} else if !state.Bootloader.IsNull() && state.Bootloader.ValueString() != "" {
+		// Preserve state value to avoid sending empty string
+		updateReq["bootloader"] = state.Bootloader.ValueString()
+	}
+
+	// CPUMode - computed field, must not be empty
+	if !plan.CPUMode.IsNull() && plan.CPUMode.ValueString() != "" && !plan.CPUMode.Equal(state.CPUMode) {
+		updateReq["cpu_mode"] = plan.CPUMode.ValueString()
+	} else if !state.CPUMode.IsNull() && state.CPUMode.ValueString() != "" {
+		// Preserve state value to avoid sending empty string
+		updateReq["cpu_mode"] = state.CPUMode.ValueString()
+	}
+
+	// CPUModel - optional field
+	if !plan.CPUModel.IsNull() && plan.CPUModel.ValueString() != "" && !plan.CPUModel.Equal(state.CPUModel) {
+		updateReq["cpu_model"] = plan.CPUModel.ValueString()
+	}
+
+	// MachineType - optional field
+	if !plan.MachineType.IsNull() && plan.MachineType.ValueString() != "" && !plan.MachineType.Equal(state.MachineType) {
+		updateReq["machine_type"] = plan.MachineType.ValueString()
+	}
+
+	// ArchType - optional field
+	if !plan.ArchType.IsNull() && plan.ArchType.ValueString() != "" && !plan.ArchType.Equal(state.ArchType) {
+		updateReq["arch_type"] = plan.ArchType.ValueString()
+	}
+
+	// Time - optional field
+	if !plan.Time.IsNull() && plan.Time.ValueString() != "" && !plan.Time.Equal(state.Time) {
+		updateReq["time"] = plan.Time.ValueString()
+	}
+
+	// HideFromMSR - boolean field
+	if !plan.HideFromMSR.IsNull() && !plan.HideFromMSR.Equal(state.HideFromMSR) {
+		updateReq["hide_from_msr"] = plan.HideFromMSR.ValueBool()
+	}
+
+	// EnsureDisplayDevice - boolean field
+	if !plan.EnsureDisplayDevice.IsNull() && !plan.EnsureDisplayDevice.Equal(state.EnsureDisplayDevice) {
+		updateReq["ensure_display_device"] = plan.EnsureDisplayDevice.ValueBool()
+	}
+
+	endpoint := fmt.Sprintf("/vm/id/%s", plan.ID.ValueString())
 	_, err := r.client.Put(endpoint, updateReq)
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to update VM, got error: %s", err))
@@ -588,12 +653,12 @@ func (r *VMResource) Update(ctx context.Context, req resource.UpdateRequest, res
 	}
 
 	// Handle state transitions if desired_state is specified
-	if !data.DesiredState.IsNull() && data.DesiredState.ValueString() != "" {
-		r.transitionVMState(ctx, data.ID.ValueString(), data.DesiredState.ValueString(), &resp.Diagnostics)
+	if !plan.DesiredState.IsNull() && plan.DesiredState.ValueString() != "" && !plan.DesiredState.Equal(state.DesiredState) {
+		r.transitionVMState(ctx, plan.ID.ValueString(), plan.DesiredState.ValueString(), &resp.Diagnostics)
 	}
 
-	r.readVM(ctx, &data, &resp.Diagnostics)
-	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
+	r.readVM(ctx, &plan, &resp.Diagnostics)
+	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
 
 func (r *VMResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
