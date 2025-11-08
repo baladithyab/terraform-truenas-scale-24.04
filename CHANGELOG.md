@@ -13,6 +13,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Service management (start/stop/configure)
 - Certificate management
 - Cron job management
+## [0.2.19] - 2025-01-08
+
+### Fixed
+- **CRITICAL**: Fixed VM Update() function sending zero values for computed fields
+- Fixed "Zero is not permitted" libvirt XML validation errors during VM updates
+- Fixed VM corruption when changing desired_state or other VM attributes
+- VM state transitions (STOPPED <-> RUNNING) now work correctly
+
+### Technical Details
+The v0.2.18 Update() function was building API payloads with all VM attributes,
+including computed fields (cores, threads, vcpus) that had zero values. This
+caused TrueNAS to attempt updating the VM with invalid CPU topology, resulting
+in libvirt XML errors and VM corruption.
+
+The fix ensures Update() only sends fields that have actually changed, and
+preserves computed field values from state when not explicitly modified.
+
+### Upgrading from v0.2.18
+If you're using v0.2.18, please upgrade immediately. Simply update your
+provider version and run terraform init. Any VMs corrupted by v0.2.18
+can be fixed by updating to v0.2.19 and running terraform apply.
+
 
 ## [0.2.18] - 2025-11-07
 
