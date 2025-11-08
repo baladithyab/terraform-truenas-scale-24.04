@@ -43,3 +43,19 @@ terraform-provider-truenas
 # Release binaries
 terraform-provider-truenas_v*
 *_SHA256SUMS
+
+# Test artifacts
+coverage.out
+coverage.html
+test-results.txt
+
+# Terraform local development
+.terraformrc
+.terraform.lock.hcl
+terraform.tfstate*
+*.tfvars
+!*.tfvars.example
+
+# Test configurations (keep examples)
+test_*.tf
+!examples/**/test_*.tf
