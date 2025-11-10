@@ -59,3 +59,4 @@ terraform.tfstate*
 # Test configurations (keep examples)
 test_*.tf
 !examples/**/test_*.tf
+terraform-registry-public-key.asc
