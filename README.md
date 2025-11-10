@@ -16,7 +16,7 @@ This is a Terraform provider for managing TrueNAS Scale 24.04 resources using th
 - **Workarounds Available**:
   - Use MAC address export + DHCP lookup (works for ALL VMs including Talos)
   - Use SSH-based guest agent query (requires guest agent installed in VM)
-- **📖 See**: [`VM_IP_DISCOVERY.md`](VM_IP_DISCOVERY.md) for complete guide and examples
+- **📖 See**: [`VM_IP_DISCOVERY.md`](docs/guides/VM_IP_DISCOVERY.md) for complete guide and examples
 
 ### Static IP Configuration
 - **API Limitation**: You cannot configure static IP addresses in the guest OS through the TrueNAS API
@@ -42,7 +42,7 @@ For comprehensive information about limitations and workarounds, see [`KNOWN_LIM
   - iSCSI (Targets, Extents, Portals)
   - Network (Interfaces, VLANs, Bridges, LAGs, Static Routes)
   - Kubernetes Apps (Chart Releases) with **Migration Support**
-- **VM IP Discovery**: Multiple methods for discovering VM IP addresses (see [`VM_IP_DISCOVERY.md`](VM_IP_DISCOVERY.md))
+- **VM IP Discovery**: Multiple methods for discovering VM IP addresses (see [`VM_IP_DISCOVERY.md`](docs/guides/VM_IP_DISCOVERY.md))
   - MAC address export for DHCP lookup
   - Guest agent queries with enhanced security options
 - **Data Sources**:
@@ -68,7 +68,7 @@ For comprehensive information about limitations and workarounds, see [`KNOWN_LIM
 Clone the repository and build the provider:
 
 ```bash
-git clone https://github.com/terraform-providers/terraform-provider-truenas
+git clone https://github.com/baladithyab/terraform-provider-truenas
 cd terraform-provider-truenas
 go build -o terraform-provider-truenas
 ```
@@ -114,7 +114,7 @@ provider "truenas" {
 Build and install the provider:
 
 ```bash
-git clone https://github.com/YOUR_GITHUB_USERNAME/terraform-provider-truenas.git
+git clone https://github.com/baladithyab/terraform-provider-truenas.git
 cd terraform-provider-truenas
 make install
 ```
@@ -132,7 +132,7 @@ If you want to build the provider yourself:
 
 ```bash
 # Clone the repository
-git clone https://github.com/YOUR_USERNAME/terraform-provider-truenas.git
+git clone https://github.com/baladithyab/terraform-provider-truenas.git
 cd terraform-provider-truenas
 
 # Build the provider

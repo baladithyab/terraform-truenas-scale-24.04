@@ -13,7 +13,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"github.com/terraform-providers/terraform-provider-truenas/internal/truenas"
+	"github.com/baladithyab/terraform-provider-truenas/internal/truenas"
 )
 
 var _ resource.Resource = &GroupResource{}

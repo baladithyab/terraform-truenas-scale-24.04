@@ -118,7 +118,7 @@ output "vm_info" {
 - ❌ Requires SSH access to TrueNAS
 - ❌ More complex setup
 
-**See**: [`VM_IP_DISCOVERY.md`](VM_IP_DISCOVERY.md) for complete guide with examples.
+**See**: [`VM_IP_DISCOVERY.md`](docs/guides/VM_IP_DISCOVERY.md) for complete guide with examples.
 
 ---
 
@@ -316,7 +316,7 @@ For simple setups, configure network settings manually after VM creation:
 If you encounter issues related to these limitations:
 
 1. Review this document and the linked guides
-2. Check [`VM_IP_DISCOVERY.md`](VM_IP_DISCOVERY.md) for IP discovery help
+2. Check [`VM_IP_DISCOVERY.md`](docs/guides/VM_IP_DISCOVERY.md) for IP discovery help
 3. Check [`IMPORT_GUIDE.md`](IMPORT_GUIDE.md) for import help
 4. Open an issue on GitHub with details about your specific use case
 

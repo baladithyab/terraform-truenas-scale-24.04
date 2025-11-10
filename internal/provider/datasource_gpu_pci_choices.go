@@ -8,7 +8,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"github.com/terraform-providers/terraform-provider-truenas/internal/truenas"
+	"github.com/baladithyab/terraform-provider-truenas/internal/truenas"
 )
 
 var _ datasource.DataSource = &GPUPCIChoicesDataSource{}

@@ -157,7 +157,7 @@ can be fixed by updating to v0.2.19 and running terraform apply.
   - Added link to [`KNOWN_LIMITATIONS.md`](KNOWN_LIMITATIONS.md)
   - Updated feature highlights
 
-- **[`VM_IP_DISCOVERY.md`](VM_IP_DISCOVERY.md)**:
+- **[`VM_IP_DISCOVERY.md`](docs/guides/VM_IP_DISCOVERY.md)**:
   - Documented `ssh_strict_host_key_checking` attribute
   - Documented `ssh_timeout_seconds` attribute
   - Added authentication validation section
@@ -165,7 +165,7 @@ can be fixed by updating to v0.2.19 and running terraform apply.
   - Added common error messages table
   - Documented host key verification process
 
-- **[`API_COVERAGE.md`](API_COVERAGE.md)**:
+- **[`API_COVERAGE.md`](docs/api/API_COVERAGE.md)**:
   - Updated total resources count: 14 → 15
   - Updated total data sources count: 2 → 10
   - Updated API coverage: ~2.2% → ~2.5%
@@ -181,8 +181,8 @@ can be fixed by updating to v0.2.19 and running terraform apply.
 - `internal/provider/datasource_vm_guest_info.go` - Enhanced with security options
 - `internal/provider/provider.go` - Registered new resource
 - `README.md` - Updated with limitations and features
-- `VM_IP_DISCOVERY.md` - Documented new security features
-- `API_COVERAGE.md` - Updated coverage statistics
+- `docs/guides/VM_IP_DISCOVERY.md` - Documented new security features
+- `docs/api/API_COVERAGE.md` - Updated coverage statistics
 - `KNOWN_LIMITATIONS.md` - New comprehensive limitations guide
 
 #### Backward Compatibility
@@ -991,7 +991,7 @@ resource "truenas_vm" "example" {
 ### Documentation
 - Added `GAPS_ANALYSIS_RESPONSE.md` - Response to community testing
 - Added `RELEASE_v0.2.0_PLAN.md` - Release planning and testing guide
-- Updated `API_COVERAGE.md` - Added version information and warnings
+- Updated `docs/api/API_COVERAGE.md` - Added version information and warnings
 - Updated `CHANGELOG.md` - This file
 
 ### Known Issues
@@ -1140,8 +1140,8 @@ terraform init -upgrade
 
 ## Support
 
-- **GitHub Issues**: https://github.com/baladithyab/terraform-truenas-scale-24.04/issues
-- **Documentation**: https://github.com/baladithyab/terraform-truenas-scale-24.04
+- **GitHub Issues**: https://github.com/baladithyab/terraform-provider-truenas/issues
+- **Documentation**: https://github.com/baladithyab/terraform-provider-truenas
 - **TrueNAS Version**: Scale 24.04 (REST API)
 
 ## Contributing

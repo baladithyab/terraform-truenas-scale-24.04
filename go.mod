@@ -1,4 +1,4 @@
-module github.com/terraform-providers/terraform-provider-truenas
+module github.com/baladithyab/terraform-provider-truenas
 
 go 1.24.0
 
