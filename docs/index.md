@@ -9,16 +9,22 @@ description: |-
 
 The TrueNAS provider allows you to manage [TrueNAS Scale](https://www.truenas.com/truenas-scale/) resources using Terraform. It provides comprehensive resource management for storage, virtualization, networking, and application deployment on TrueNAS Scale 24.04 and later.
 
+## What's New
+
+🎉 **Complete Documentation Coverage**: This release includes comprehensive documentation for all 15 resources and 10 data sources, with categorized navigation, practical examples, and detailed configuration guides.
+
 ## Features
 
-- **Storage Management**: ZFS datasets, snapshots, and snapshot tasks
+- **Storage Management**: ZFS datasets, snapshots, and automated snapshot tasks
 - **File Sharing**: NFS and SMB shares with full configuration support
-- **Virtual Machines**: Complete VM lifecycle management with device attachment
-- **User Management**: Users and groups with permissions
+- **Virtual Machines**: Complete VM lifecycle management with device attachment and GPU passthrough
+- **User Management**: Users and groups with comprehensive permission controls
 - **Network Configuration**: Static routes and interface management
-- **iSCSI Storage**: Targets, extents, and portal configuration
-- **Kubernetes Applications**: Chart deployment and management
+- **iSCSI Storage**: Complete iSCSI infrastructure with targets, extents, and portals
+- **Kubernetes Applications**: Chart deployment and management for TrueNAS apps
+- **Hardware Discovery**: PCI passthrough, GPU selection, and IOMMU capability detection
 - **Import Support**: Import existing resources into Terraform state
+- **Comprehensive Data Sources**: Query and discover existing TrueNAS resources
 
 ## Supported TrueNAS Versions
 
@@ -29,7 +35,9 @@ The TrueNAS provider allows you to manage [TrueNAS Scale](https://www.truenas.co
 
 The provider requires API credentials for your TrueNAS Scale instance. API keys can be generated from the TrueNAS web interface under **System Settings > API Keys**.
 
-## Example Usage
+## Quick Start Examples
+
+### Basic Storage and File Sharing Setup
 
 ```terraform
 terraform {
@@ -44,14 +52,11 @@ terraform {
 provider "truenas" {
   base_url = "https://truenas.example.com"
   api_key  = var.truenas_api_key
-  
-  # Optional: Disable SSL verification for self-signed certificates
-  # skip_tls_verify = true
 }
 
-# Create a ZFS dataset
-resource "truenas_dataset" "example" {
-  name = "tank/terraform-managed"
+# Create a ZFS dataset for application data
+resource "truenas_dataset" "app_data" {
+  name = "tank/applications"
   type = "FILESYSTEM"
   
   quota {
@@ -60,23 +65,122 @@ resource "truenas_dataset" "example" {
   }
 }
 
-# Create an NFS share
-resource "truenas_nfs_share" "example" {
-  path    = "/mnt/${truenas_dataset.example.name}"
-  comment = "Managed by Terraform"
+# Create an NFS share for application data
+resource "truenas_nfs_share" "app_nfs" {
+  path    = "/mnt/${truenas_dataset.app_data.name}"
+  comment = "Application data share managed by Terraform"
   
   networks = ["192.168.1.0/24"]
+  security {
+    maproot_user = "root"
+  }
 }
 
-# Deploy a virtual machine
-resource "truenas_vm" "example" {
-  name        = "ubuntu-vm"
-  description = "Ubuntu Server managed by Terraform"
+# Create an SMB share for Windows clients
+resource "truenas_smb_share" "app_smb" {
+  path    = "/mnt/${truenas_dataset.app_data.name}"
+  name    = "app-data"
+  comment = "Application data SMB share"
   
-  vcpus  = 2
-  memory = 4096
+  hostsallow = ["192.168.1.0/24"]
+}
+```
+
+### Virtual Machine with GPU Passthrough
+
+```terraform
+# Discover available GPU devices
+data "truenas_gpu_pci_choices" "available_gpus" {}
+
+# Check IOMMU capability
+data "truenas_vm_iommu_enabled" "iommu_check" {}
+
+# Create a virtual machine with GPU passthrough
+resource "truenas_vm" "gpu_vm" {
+  name        = "gpu-workstation"
+  description = "VM with GPU passthrough for graphics workloads"
+  
+  vcpus  = 4
+  memory = 8192
   
   autostart = true
+  
+  boot_device {
+    type = "CDROM"
+    file = "/mnt/tank/iso/ubuntu-22.04.iso"
+  }
+}
+
+# Attach GPU device to VM
+resource "truenas_vm_device" "gpu_device" {
+  vm_id = truenas_vm.gpu_vm.id
+  
+  pci_config {
+    pci_address = data.truenas_gpu_pci_choices.available_gpus.choices[0].value
+  }
+}
+
+# Get VM guest IP information
+data "truenas_vm_guest_info" "vm_info" {
+  vm_id = truenas_vm.gpu_vm.id
+}
+```
+
+### Complete iSCSI Infrastructure
+
+```terraform
+# Create iSCSI portal
+resource "truenas_iscsi_portal" "main_portal" {
+  listen_addresses = ["0.0.0.0:3260"]
+  comment          = "Main iSCSI portal"
+}
+
+# Create iSCSI extent
+resource "truenas_iscsi_extent" "data_extent" {
+  name        = "data-extent"
+  type        = "FILE"
+  path        = "/mnt/tank/iscsi/data-extent"
+  filesize    = 10737418240  # 10GB
+  blocksize   = 4096
+  comment     = "Data storage extent"
+}
+
+# Create iSCSI target
+resource "truenas_iscsi_target" "data_target" {
+  name     = "data-target"
+  alias    = "Data Storage Target"
+  comment  = "Target for data storage"
+  
+  groups = ["authenticated"]
+  auth_networks = ["192.168.1.0/24"]
+  
+  extents {
+    extent_id = truenas_iscsi_extent.data_extent.id
+  }
+  
+  portals {
+    portal_id = truenas_iscsi_portal.main_portal.id
+  }
+}
+```
+
+### Kubernetes Application Deployment
+
+```terraform
+# Deploy a Kubernetes application using TrueNAS charts
+resource "truenas_chart_release" "nextcloud" {
+  name        = "nextcloud"
+  catalog     = "OFFICIAL"
+  train       = "stable"
+  version     = "latest"
+  
+  values = jsonencode({
+    nextcloud: {
+      host: "nextcloud.example.com"
+      username: "admin"
+      password: "secure-password"
+    }
+  })
 }
 ```
 
@@ -124,42 +228,103 @@ resource "truenas_vm" "example" {
 
 The following resources are supported:
 
-### Storage & File Sharing
-- [truenas_dataset](https://registry.terraform.io/providers/baladithyab/truenas/latest/docs/resources/dataset)
-- [truenas_snapshot](https://registry.terraform.io/providers/baladithyab/truenas/latest/docs/resources/snapshot)
-- [truenas_periodic_snapshot_task](https://registry.terraform.io/providers/baladithyab/truenas/latest/docs/resources/periodic_snapshot_task)
-- [truenas_nfs_share](https://registry.terraform.io/providers/baladithyab/truenas/latest/docs/resources/nfs_share)
-- [truenas_smb_share](https://registry.terraform.io/providers/baladithyab/truenas/latest/docs/resources/smb_share)
+### Storage
+- [truenas_dataset](./resources/dataset) - ZFS dataset management
+- [truenas_snapshot](./resources/snapshot) - Manual snapshot creation
+- [truenas_periodic_snapshot_task](./resources/periodic_snapshot_task) - Automated snapshot scheduling
+
+### File Sharing
+- [truenas_nfs_share](./resources/nfs_share) - NFS share configuration
+- [truenas_smb_share](./resources/smb_share) - SMB/CIFS share configuration
 
 ### Virtual Machines
-- [truenas_vm](https://registry.terraform.io/providers/baladithyab/truenas/latest/docs/resources/vm)
-- [truenas_vm_device](https://registry.terraform.io/providers/baladithyab/truenas/latest/docs/resources/vm_device)
+- [truenas_vm](./resources/vm) - Virtual machine management
+- [truenas_vm_device](./resources/vm_device) - VM device management (NICs, disks, PCI passthrough)
 
 ### User Management
-- [truenas_user](https://registry.terraform.io/providers/baladithyab/truenas/latest/docs/resources/user)
-- [truenas_group](https://registry.terraform.io/providers/baladithyab/truenas/latest/docs/resources/group)
+- [truenas_user](./resources/user) - User account management
+- [truenas_group](./resources/group) - User group management
 
 ### Network
-- [truenas_interface](https://registry.terraform.io/providers/baladithyab/truenas/latest/docs/resources/interface)
-- [truenas_static_route](https://registry.terraform.io/providers/baladithyab/truenas/latest/docs/resources/static_route)
+- [truenas_interface](./resources/interface) - Network interface management
+- [truenas_static_route](./resources/static_route) - Static route configuration
 
 ### iSCSI
-- [truenas_iscsi_target](https://registry.terraform.io/providers/baladithyab/truenas/latest/docs/resources/iscsi_target)
-- [truenas_iscsi_extent](https://registry.terraform.io/providers/baladithyab/truenas/latest/docs/resources/iscsi_extent)
-- [truenas_iscsi_portal](https://registry.terraform.io/providers/baladithyab/truenas/latest/docs/resources/iscsi_portal)
+- [truenas_iscsi_target](./resources/iscsi_target) - iSCSI target configuration
+- [truenas_iscsi_extent](./resources/iscsi_extent) - iSCSI storage extent management
+- [truenas_iscsi_portal](./resources/iscsi_portal) - iSCSI portal management
 
-### Applications
-- [truenas_chart_release](https://registry.terraform.io/providers/baladithyab/truenas/latest/docs/resources/chart_release)
+### Kubernetes
+- [truenas_chart_release](./resources/chart_release) - Kubernetes chart releases management
 
 ## Data Sources
 
-- [truenas_dataset](https://registry.terraform.io/providers/baladithyab/truenas/latest/docs/data-sources/dataset)
-- [truenas_pool](https://registry.terraform.io/providers/baladithyab/truenas/latest/docs/data-sources/pool)
-- [truenas_vm](https://registry.terraform.io/providers/baladithyab/truenas/latest/docs/data-sources/vm)
-- [truenas_vms](https://registry.terraform.io/providers/baladithyab/truenas/latest/docs/data-sources/vms)
-- [truenas_vm_guest_info](https://registry.terraform.io/providers/baladithyab/truenas/latest/docs/data-sources/vm_guest_info)
-- [truenas_vm_pci_passthrough_devices](https://registry.terraform.io/providers/baladithyab/truenas/latest/docs/data-sources/vm_pci_passthrough_devices)
-- [truenas_vm_iommu_enabled](https://registry.terraform.io/providers/baladithyab/truenas/latest/docs/data-sources/vm_iommu_enabled)
-- [truenas_gpu_pci_choices](https://registry.terraform.io/providers/baladithyab/truenas/latest/docs/data-sources/gpu_pci_choices)
-- [truenas_nfs_shares](https://registry.terraform.io/providers/baladithyab/truenas/latest/docs/data-sources/nfs_shares)
-- [truenas_smb_shares](https://registry.terraform.io/providers/baladithyab/truenas/latest/docs/data-sources/smb_shares)
+The following data sources are supported:
+
+### Storage & Discovery
+- [truenas_dataset](./data-sources/dataset) - Dataset information
+- [truenas_pool](./data-sources/pool) - Storage pool information
+
+### Virtual Machines
+- [truenas_vm](./data-sources/vm) - VM information by ID or name
+- [truenas_vms](./data-sources/vms) - List all VMs
+- [truenas_vm_guest_info](./data-sources/vm_guest_info) - VM guest IP information
+
+### Hardware Discovery
+- [truenas_vm_pci_passthrough_devices](./data-sources/vm_pci_passthrough_devices) - PCI passthrough device discovery
+- [truenas_vm_iommu_enabled](./data-sources/vm_iommu_enabled) - IOMMU capability checking
+- [truenas_gpu_pci_choices](./data-sources/gpu_pci_choices) - GPU PCI device selection
+
+### File Sharing
+- [truenas_nfs_shares](./data-sources/nfs_shares) - NFS shares listing
+- [truenas_smb_shares](./data-sources/smb_shares) - SMB shares listing
+
+## Examples
+
+The provider includes comprehensive examples for various use cases:
+
+### Complete Setups
+- [Complete Infrastructure Setup](../../examples/complete/) - Full TrueNAS infrastructure with storage, networking, and VMs
+- [Complete iSCSI Setup](../../examples/complete-iscsi/) - Complete iSCSI infrastructure example
+- [Complete Kubernetes Setup](../../examples/complete-kubernetes/) - Kubernetes application deployment
+- [Complete Network Setup](../../examples/complete-network/) - Network configuration and routing
+
+### Virtual Machine Examples
+- [VM with Devices](../../examples/vm-with-devices/) - VM with multiple device attachments
+- [VM Boot Order](../../examples/vm-boot-order/) - Custom boot order configuration
+- [Boot Order Testing](../../examples/boot-order/) - Boot order verification and testing
+- [VM GPU Passthrough](../../examples/vm-gpu-passthrough/) - GPU passthrough setup
+- [VM IP Discovery](../../examples/vm-ip-discovery/) - Dynamic IP discovery for VMs
+
+### Individual Resource Examples
+- [Dataset Management](../../examples/resources/truenas_dataset/) - ZFS dataset creation and management
+- [NFS Share](../../examples/resources/truenas_nfs_share/) - NFS share configuration
+- [SMB Share](../../examples/resources/truenas_smb_share/) - SMB share setup
+- [User Management](../../examples/resources/truenas_user/) - User account creation
+- [Group Management](../../examples/resources/truenas_group/) - User group configuration
+- [VM Creation](../../examples/resources/truenas_vm/) - Basic VM setup
+- [VM Device Management](../../examples/resources/truenas_vm_device/) - VM device attachment
+- [Interface Configuration](../../examples/resources/truenas_interface/) - Network interface setup
+- [iSCSI Target](../../examples/resources/truenas_iscsi_target/) - iSCSI target configuration
+- [iSCSI Extent](../../examples/resources/truenas_iscsi_extent/) - iSCSI extent management
+- [iSCSI Portal](../../examples/resources/truenas_iscsi_portal/) - iSCSI portal setup
+- [Snapshot Management](../../examples/resources/truenas_snapshot/) - Manual snapshot creation
+- [Periodic Snapshot Tasks](../../examples/resources/truenas_periodic_snapshot_task/) - Automated snapshot scheduling
+- [Static Routes](../../examples/resources/truenas_static_route/) - Network routing configuration
+- [Chart Releases](../../examples/resources/truenas_chart_release/) - Kubernetes application deployment
+
+### Data Source Examples
+- [VM Guest Info](../../examples/data-sources/truenas_vm_guest_info/) - VM guest information discovery
+- [Data Sources Discovery](../../examples/data-sources-discovery/) - Comprehensive data source usage
+
+### Specialized Setups
+- [Talos Minimal](../../examples/talos-minimal/) - Minimal Talos OS setup
+- [Volume Size Management](../../examples/volsize/) - Dynamic volume sizing
+
+## Guides
+
+- [Quick Start Guide](./guides/QUICKSTART.md) - Getting started with the provider
+- [Import Guide](./guides/IMPORT_GUIDE.md) - Import existing resources
+- [Kubernetes Migration](./guides/KUBERNETES_MIGRATION.md) - Migrating Kubernetes applications
+- [VM IP Discovery](./guides/VM_IP_DISCOVERY.md) - Dynamic IP discovery for VMs
+- [Testing](./guides/TESTING.md) - Testing provider functionality
