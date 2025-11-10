@@ -11,21 +11,23 @@ The TrueNAS Scale 24.04 API contains **148,765 lines** of OpenAPI specification 
 ## ⚠️ Important Version Information
 
 **Latest Code Version**: `main` branch (all features implemented)
-**Published Registry Version**: `v0.1.0` (may have missing features)
-**Upcoming Release**: `v0.2.0` (includes all features, ETA: 24-48 hours)
+**Published Registry Version**: `v0.2.19` (may have missing features)
+**Latest Release**: `v0.2.22` (complete documentation coverage, 100% documentation)
 
-### Known Issues with v0.1.0
+### Documentation Status - v0.2.22
 
-If you're using `v0.1.0` from the Terraform Registry, you may encounter:
-- ❌ Data sources not working (`data.truenas_pool`, `data.truenas_dataset`)
-- ❌ Some import functionality missing
-- ❌ Schema validation errors for snapshot resources
+**v0.2.22** represents a major documentation milestone:
+- ✅ **100% Documentation Coverage**: All 25 components (15 resources + 10 data sources) fully documented
+- ✅ **Professional Documentation**: Complete parameter references, examples, and guides
+- ✅ **Production Ready**: Comprehensive examples and best practices for all components
 
-**Solution**:
-1. **Immediate**: Build from source (see [GAPS_ANALYSIS_RESPONSE.md](GAPS_ANALYSIS_RESPONSE.md))
-2. **Recommended**: Wait for v0.2.0 release (24-48 hours)
+**Previous Versions**:
+- `v0.2.19` and earlier had limited documentation (only 4 components documented)
+- `v0.1.0` had critical issues with data sources and import functionality
 
-All features listed below ARE implemented in the codebase and will be available in v0.2.0.
+**Recommendation**: Use v0.2.22 for complete documentation and all features.
+
+All features listed below ARE implemented and fully documented in v0.2.22.
 
 ### Quick Stats
 

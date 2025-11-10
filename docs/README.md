@@ -18,7 +18,7 @@ How-to guides and usage documentation:
 
 ### Release Notes (`releases/`)
 Version history and release information:
-- **[RELEASE_NOTES_v0.2.0.md](releases/RELEASE_NOTES_v0.2.0.md)** through **[RELEASE_NOTES_v0.2.19.md](releases/RELEASE_NOTES_v0.2.19.md)**
+- **[RELEASE_NOTES_v0.2.0.md](releases/RELEASE_NOTES_v0.2.0.md)** through **[RELEASE_NOTES_v0.2.22.md](releases/RELEASE_NOTES_v0.2.22.md)**
 - Detailed changelog for each version
 - Upgrade notes and breaking changes
 - Bug fixes and enhancements
@@ -65,7 +65,7 @@ Comprehensive validation and quality assurance:
 - Endpoint reference: [api/API_ENDPOINTS.md](api/API_ENDPOINTS.md)
 
 **Version History:**
-- Latest release notes: [releases/RELEASE_NOTES_v0.2.19.md](releases/RELEASE_NOTES_v0.2.19.md)
+- Latest release notes: [releases/RELEASE_NOTES_v0.2.22.md](releases/RELEASE_NOTES_v0.2.22.md)
 - All releases: [releases/](releases/)
 
 **Testing:**

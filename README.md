@@ -100,7 +100,7 @@ terraform {
   required_providers {
     truenas = {
       source  = "registry.terraform.io/baladithyab/truenas"
-      version = "~> 0.2.0"
+      version = "~> 0.2.22"
     }
   }
 }
@@ -159,7 +159,7 @@ terraform {
   required_providers {
     truenas = {
       source  = "registry.terraform.io/baladithyab/truenas"
-      version = "~> 0.2.0"
+      version = "~> 0.2.22"
     }
   }
 }
