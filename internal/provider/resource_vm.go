@@ -55,9 +55,17 @@ type VMResourceModel struct {
 	EnsureDisplayDevice types.Bool   `tfsdk:"ensure_display_device"`
 	NICDevices          types.List   `tfsdk:"nic_devices"`
 	DiskDevices         types.List   `tfsdk:"disk_devices"`
-	CDROMDevices        types.List   `tfsdk:"cdrom_devices"`
-	DisplayDevices      types.List   `tfsdk:"display_devices"`
-	PCIDevices          types.List   `tfsdk:"pci_devices"`
+	CDROMDevices        types.List      `tfsdk:"cdrom_devices"`
+	DisplayDevices      types.List      `tfsdk:"display_devices"`
+	PCIDevices          types.List      `tfsdk:"pci_devices"`
+	CloudInit           *CloudInitModel `tfsdk:"cloud_init"`
+}
+
+type CloudInitModel struct {
+	UserData   types.String `tfsdk:"user_data"`
+	MetaData   types.String `tfsdk:"meta_data"`
+	Filename   types.String `tfsdk:"filename"`
+	UploadPath types.String `tfsdk:"upload_path"`
 }
 
 type NICDeviceModel struct {
@@ -385,6 +393,36 @@ func (r *VMResource) Schema(ctx context.Context, req resource.SchemaRequest, res
 				Optional:            true,
 				Computed:            true,
 			},
+			"cloud_init": schema.SingleNestedAttribute{
+				MarkdownDescription: "Cloud-init configuration",
+				Optional:            true,
+				Attributes: map[string]schema.Attribute{
+					"user_data": schema.StringAttribute{
+						MarkdownDescription: "Cloud-init user-data",
+						Optional:            true,
+					},
+					"meta_data": schema.StringAttribute{
+						MarkdownDescription: "Cloud-init meta-data",
+						Optional:            true,
+					},
+					"filename": schema.StringAttribute{
+						MarkdownDescription: "Name of the ISO file. Defaults to cloud-init-{vm_name}.iso",
+						Optional:            true,
+						Computed:            true,
+						PlanModifiers: []planmodifier.String{
+							stringplanmodifier.UseStateForUnknown(),
+						},
+					},
+					"upload_path": schema.StringAttribute{
+						MarkdownDescription: "Directory to upload the ISO to. Defaults to /mnt/{first_pool}/isos/",
+						Optional:            true,
+						Computed:            true,
+						PlanModifiers: []planmodifier.String{
+							stringplanmodifier.UseStateForUnknown(),
+						},
+					},
+				},
+			},
 		},
 	}
 }
@@ -488,6 +526,14 @@ func (r *VMResource) Create(ctx context.Context, req resource.CreateRequest, res
 
 	if id, ok := result["id"].(float64); ok {
 		data.ID = types.StringValue(strconv.Itoa(int(id)))
+	}
+
+	// Handle Cloud-Init
+	if data.CloudInit != nil {
+		if err := r.handleCloudInitCreate(ctx, &data); err != nil {
+			resp.Diagnostics.AddError("Cloud-Init Error", fmt.Sprintf("Failed to setup cloud-init: %s", err))
+			return
+		}
 	}
 
 	// Create devices after VM creation
@@ -652,6 +698,52 @@ func (r *VMResource) Update(ctx context.Context, req resource.UpdateRequest, res
 		return
 	}
 
+	// Handle Cloud-Init updates
+	if plan.CloudInit != nil {
+		// If cloud-init config changed, regenerate and upload ISO
+		// We assume the path hasn't changed for simplicity in this iteration, or if it has, we handle it.
+		// Since we don't track the device ID of the cloud-init ISO, replacing it is tricky if path changes.
+		// For now, we'll just overwrite the file if the path is the same.
+		
+		// Determine path (re-using logic from Create, should probably be shared)
+		filename := plan.CloudInit.Filename.ValueString()
+		if filename == "" {
+			filename = fmt.Sprintf("cloud-init-%s.iso", plan.Name.ValueString())
+			// Update plan with computed value
+			plan.CloudInit.Filename = types.StringValue(filename)
+		}
+
+		uploadPath := plan.CloudInit.UploadPath.ValueString()
+		if uploadPath == "" {
+			// If not in plan, try state, or fetch default
+			if !state.CloudInit.UploadPath.IsNull() {
+				uploadPath = state.CloudInit.UploadPath.ValueString()
+			} else {
+				poolName, err := r.getFirstPoolName()
+				if err == nil {
+					uploadPath = fmt.Sprintf("/mnt/%s/isos", poolName)
+				}
+			}
+			plan.CloudInit.UploadPath = types.StringValue(uploadPath)
+		}
+
+		if uploadPath != "" {
+			fullPath := fmt.Sprintf("%s/%s", strings.TrimRight(uploadPath, "/"), filename)
+			
+			userData := plan.CloudInit.UserData.ValueString()
+			metaData := plan.CloudInit.MetaData.ValueString()
+			
+			isoBytes, err := GenerateCloudInitISO(userData, metaData)
+			if err == nil {
+				if err := r.client.UploadFile(fullPath, isoBytes); err != nil {
+					resp.Diagnostics.AddWarning("Cloud-Init Update", fmt.Sprintf("Failed to upload updated cloud-init ISO: %s", err))
+				}
+			} else {
+				resp.Diagnostics.AddWarning("Cloud-Init Update", fmt.Sprintf("Failed to generate cloud-init ISO: %s", err))
+			}
+		}
+	}
+
 	// Handle state transitions if desired_state is specified
 	if !plan.DesiredState.IsNull() && plan.DesiredState.ValueString() != "" && !plan.DesiredState.Equal(state.DesiredState) {
 		r.transitionVMState(ctx, plan.ID.ValueString(), plan.DesiredState.ValueString(), &resp.Diagnostics)
@@ -659,6 +751,71 @@ func (r *VMResource) Update(ctx context.Context, req resource.UpdateRequest, res
 
 	r.readVM(ctx, &plan, &resp.Diagnostics)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
+}
+
+func (r *VMResource) getFirstPoolName() (string, error) {
+	respBody, err := r.client.Get("/pool")
+	if err != nil {
+		return "", err
+	}
+	var pools []map[string]interface{}
+	if err := json.Unmarshal(respBody, &pools); err != nil {
+		return "", err
+	}
+	if len(pools) == 0 {
+		return "", fmt.Errorf("no pools found")
+	}
+	if name, ok := pools[0]["name"].(string); ok {
+		return name, nil
+	}
+	return "", fmt.Errorf("pool name not found")
+}
+
+func (r *VMResource) handleCloudInitCreate(ctx context.Context, data *VMResourceModel) error {
+	userData := data.CloudInit.UserData.ValueString()
+	metaData := data.CloudInit.MetaData.ValueString()
+
+	isoBytes, err := GenerateCloudInitISO(userData, metaData)
+	if err != nil {
+		return err
+	}
+
+	// Determine path
+	filename := data.CloudInit.Filename.ValueString()
+	if filename == "" {
+		filename = fmt.Sprintf("cloud-init-%s.iso", data.Name.ValueString())
+		data.CloudInit.Filename = types.StringValue(filename)
+	}
+
+	uploadPath := data.CloudInit.UploadPath.ValueString()
+	if uploadPath == "" {
+		poolName, err := r.getFirstPoolName()
+		if err != nil {
+			return err
+		}
+		uploadPath = fmt.Sprintf("/mnt/%s/isos", poolName)
+		data.CloudInit.UploadPath = types.StringValue(uploadPath)
+	}
+
+	fullPath := fmt.Sprintf("%s/%s", strings.TrimRight(uploadPath, "/"), filename)
+
+	// Upload
+	if err := r.client.UploadFile(fullPath, isoBytes); err != nil {
+		return err
+	}
+
+	// Add CDROM device
+	deviceReq := map[string]interface{}{
+		"vm":    data.ID.ValueString(),
+		"dtype": "CDROM",
+		"order": 10000,
+		"attributes": map[string]interface{}{
+			"path": fullPath,
+		},
+	}
+
+	_, err = r.client.Post("/vm/device", deviceReq)
+	return err
 }
 
 func (r *VMResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
@@ -674,6 +831,18 @@ func (r *VMResource) Delete(ctx context.Context, req resource.DeleteRequest, res
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to delete VM, got error: %s", err))
 		return
+	}
+
+	// Delete Cloud-Init ISO if it exists
+	if data.CloudInit != nil {
+		uploadPath := data.CloudInit.UploadPath.ValueString()
+		filename := data.CloudInit.Filename.ValueString()
+		if uploadPath != "" && filename != "" {
+			fullPath := fmt.Sprintf("%s/%s", strings.TrimRight(uploadPath, "/"), filename)
+			if err := r.client.DeleteFile(fullPath); err != nil {
+				resp.Diagnostics.AddWarning("Cloud-Init Cleanup", fmt.Sprintf("Failed to delete cloud-init ISO at %s: %s", fullPath, err))
+			}
+		}
 	}
 }
 
@@ -1044,6 +1213,13 @@ func (r *VMResource) readVM(ctx context.Context, data *VMResourceModel, diags *d
 				case "CDROM":
 					cdrom := CDROMDeviceModel{}
 					if path, ok := attributes["path"].(string); ok {
+						// Check if this is the cloud-init ISO and skip it if so
+						if data.CloudInit != nil && !data.CloudInit.UploadPath.IsNull() && !data.CloudInit.Filename.IsNull() {
+							cloudInitPath := fmt.Sprintf("%s/%s", strings.TrimRight(data.CloudInit.UploadPath.ValueString(), "/"), data.CloudInit.Filename.ValueString())
+							if path == cloudInitPath {
+								continue
+							}
+						}
 						cdrom.Path = types.StringValue(path)
 					} else {
 						cdrom.Path = types.StringNull()

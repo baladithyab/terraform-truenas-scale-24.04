@@ -101,6 +101,43 @@ resource "truenas_vm" "production" {
 }
 ```
 
+### VM with Cloud-Init
+
+```terraform
+resource "truenas_vm" "cloud_vm" {
+  name        = "ubuntu-cloud"
+  description = "Ubuntu with Cloud-Init"
+  vcpus       = 2
+  memory      = 4096
+  autostart   = true
+
+  cloud_init {
+    user_data = <<EOF
+#cloud-config
+hostname: ubuntu-server
+users:
+  - name: ubuntu
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    groups: users, admin
+    home: /home/ubuntu
+    shell: /bin/bash
+    lock_passwd: false
+    ssh_authorized_keys:
+      - ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC...
+packages:
+  - qemu-guest-agent
+runcmd:
+  - systemctl enable --now qemu-guest-agent
+EOF
+    
+    meta_data = <<EOF
+instance-id: ubuntu-cloud-001
+local-hostname: ubuntu-server
+EOF
+  }
+}
+```
+
 ## Schema
 
 ### Required
@@ -124,6 +161,7 @@ resource "truenas_vm" "production" {
 - `ensure_display_device` (Boolean) Ensure a display device exists. Default: true
 - `hide_from_msr` (Boolean) Hide the VM from MSR (Windows specific). Default: false
 - `display` (Block) Display/VNC configuration. See [Display Configuration](#display-configuration) below.
+- `cloud_init` (Block) Cloud-Init configuration. See [Cloud-Init Configuration](#cloud-init-configuration) below.
 
 ### Display Configuration
 
@@ -134,6 +172,15 @@ The `display` block supports:
 - `bind` (String) IP address to bind VNC server. Default: `0.0.0.0`
 - `password` (String, Sensitive) VNC password for authentication.
 - `web` (Boolean) Enable web VNC access. Default: false
+
+### Cloud-Init Configuration
+
+The `cloud_init` block supports:
+
+- `user_data` (String) Cloud-init user-data configuration (YAML format).
+- `meta_data` (String) Cloud-init meta-data configuration (YAML format).
+- `filename` (String, Optional) Name of the generated ISO file. Defaults to `cloud-init-{vm_name}.iso`.
+- `upload_path` (String, Optional) Directory to upload the ISO to. Defaults to `/mnt/{first_pool}/isos/`.
 
 ### Read-Only
 

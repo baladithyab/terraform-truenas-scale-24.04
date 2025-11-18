@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"mime/multipart"
 	"net/http"
 	"strings"
 	"time"
@@ -188,4 +189,68 @@ func (c *Client) UpdateVMDevice(id string, device map[string]interface{}) ([]byt
 func (c *Client) DeleteVMDevice(id string) ([]byte, error) {
 	endpoint := fmt.Sprintf("/vm/device/id/%s", id)
 	return c.Delete(endpoint)
+}
+
+// UploadFile uploads a file to the TrueNAS system
+func (c *Client) UploadFile(path string, content []byte) error {
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+
+	// Add data field
+	data := map[string]string{"path": path}
+	jsonData, err := json.Marshal(data)
+	if err != nil {
+		return fmt.Errorf("error marshaling data: %w", err)
+	}
+	if err := writer.WriteField("data", string(jsonData)); err != nil {
+		return fmt.Errorf("error writing data field: %w", err)
+	}
+
+	// Add file field
+	part, err := writer.CreateFormFile("file", "file")
+	if err != nil {
+		return fmt.Errorf("error creating form file: %w", err)
+	}
+	if _, err := part.Write(content); err != nil {
+		return fmt.Errorf("error writing file content: %w", err)
+	}
+
+	if err := writer.Close(); err != nil {
+		return fmt.Errorf("error closing multipart writer: %w", err)
+	}
+
+	url := fmt.Sprintf("%s/api/%s/filesystem/put", c.BaseURL, apiVersion)
+	req, err := http.NewRequest("POST", url, body)
+	if err != nil {
+		return fmt.Errorf("error creating request: %w", err)
+	}
+
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.APIKey))
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+
+	resp, err := c.HTTPClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("error performing request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		respBody, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("API request failed with status %d: %s", resp.StatusCode, string(respBody))
+	}
+
+	return nil
+}
+
+// DeleteFile deletes a file from the TrueNAS system
+func (c *Client) DeleteFile(path string) error {
+	// Note: /filesystem/delete is not explicitly documented in some versions of the API spec,
+	// but follows the pattern of other filesystem operations.
+	endpoint := "/filesystem/delete"
+	data := map[string]interface{}{
+		"path": path,
+	}
+
+	_, err := c.Post(endpoint, data)
+	return err
 }
