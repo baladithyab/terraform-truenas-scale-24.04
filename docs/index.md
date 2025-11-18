@@ -17,12 +17,13 @@ The TrueNAS provider allows you to manage [TrueNAS Scale](https://www.truenas.co
 
 - **Storage Management**: ZFS datasets, snapshots, and automated snapshot tasks
 - **File Sharing**: NFS and SMB shares with full configuration support
-- **Virtual Machines**: Complete VM lifecycle management with device attachment and GPU passthrough
+- **Virtual Machines**: Complete VM lifecycle management with device attachment, GPU passthrough, and cloud-init support
 - **User Management**: Users and groups with comprehensive permission controls
 - **Network Configuration**: Static routes and interface management
 - **iSCSI Storage**: Complete iSCSI infrastructure with targets, extents, and portals
 - **Kubernetes Applications**: Chart deployment and management for TrueNAS apps
 - **Hardware Discovery**: PCI passthrough, GPU selection, and IOMMU capability detection
+- **Cloud-Init Support**: Automated VM initialization with user-data, meta-data, and network configuration
 - **Import Support**: Import existing resources into Terraform state
 - **Comprehensive Data Sources**: Query and discover existing TrueNAS resources
 

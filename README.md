@@ -39,6 +39,7 @@ For comprehensive information about limitations and workarounds, see [`KNOWN_LIM
   - Users & Groups
   - **Virtual Machines** with lifecycle management (`desired_state` for started/stopped control)
   - **VM Devices** - Standalone device management (NICs, disks, CDROMs, PCI passthrough)
+  - **Cloud-Init Support** for automated VM initialization with static IP configuration
   - iSCSI (Targets, Extents, Portals)
   - Network (Interfaces, VLANs, Bridges, LAGs, Static Routes)
   - Kubernetes Apps (Chart Releases) with **Migration Support**

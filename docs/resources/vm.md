@@ -179,8 +179,52 @@ The `cloud_init` block supports:
 
 - `user_data` (String) Cloud-init user-data configuration (YAML format).
 - `meta_data` (String) Cloud-init meta-data configuration (YAML format).
+- `network_config` (String) Cloud-init network-config configuration (YAML format) for static IP assignment.
 - `filename` (String, Optional) Name of the generated ISO file. Defaults to `cloud-init-{vm_name}.iso`.
 - `upload_path` (String, Optional) Directory to upload the ISO to. Defaults to `/mnt/{first_pool}/isos/`.
+
+#### Static IP Assignment Example
+
+```terraform
+resource "truenas_vm" "static_ip_vm" {
+  name        = "ubuntu-static"
+  description = "Ubuntu with static IP via cloud-init"
+  vcpus       = 2
+  memory      = 4096
+  autostart   = true
+
+  cloud_init {
+    user_data = <<EOF
+#cloud-config
+hostname: ubuntu-static
+users:
+  - name: ubuntu
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    groups: users, admin
+    home: /home/ubuntu
+    shell: /bin/bash
+    lock_passwd: false
+    ssh_authorized_keys:
+      - ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC...
+packages:
+  - qemu-guest-agent
+runcmd:
+  - systemctl enable --now qemu-guest-agent
+EOF
+    
+    network_config = <<EOF
+version: 2
+ethernets:
+  eth0:
+    dhcp4: no
+    addresses: [192.168.1.100/24]
+    gateway4: 192.168.1.1
+    nameservers:
+      addresses: [8.8.8.8, 8.8.4.4]
+EOF
+  }
+}
+```
 
 ### Read-Only
 

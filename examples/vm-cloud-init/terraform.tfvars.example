@@ -1,0 +1,14 @@
+# TrueNAS Configuration
+truenas_url = "http://truenas.local:81"
+truenas_api_key = "your-api-key-here"
+
+# Storage Configuration
+pool_name = "tank"
+
+# Network Configuration
+static_ip = "192.168.1.100"
+static_gateway = "192.168.1.1"
+dns_servers = ["8.8.8.8", "8.8.4.4"]
+
+# SSH Configuration
+ssh_public_key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC3ExamplePublicKeyForDemostrationOnly"
