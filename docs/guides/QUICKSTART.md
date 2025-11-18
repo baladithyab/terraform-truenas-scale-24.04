@@ -32,7 +32,7 @@ make build
 make install
 ```
 
-This will install the provider to `~/.terraform.d/plugins/terraform-providers/truenas/1.0.0/linux_amd64/`
+This will install the provider to `~/.terraform.d/plugins/terraform-providers/truenas/0.2.23/linux_amd64/`
 
 ## Step 3: Create Your First Terraform Configuration
 
@@ -50,7 +50,7 @@ terraform {
   required_providers {
     truenas = {
       source  = "terraform-providers/truenas"
-      version = "1.0.0"
+      version = "0.2.23"
     }
   }
 }
@@ -144,7 +144,7 @@ provider "truenas" {
 If you get an error about the provider not being found:
 
 1. Make sure you ran `make install`
-2. Check that the provider binary exists in `~/.terraform.d/plugins/terraform-providers/truenas/1.0.0/linux_amd64/`
+2. Check that the provider binary exists in `~/.terraform.d/plugins/terraform-providers/truenas/0.2.23/linux_amd64/`
 3. Run `terraform init` again
 
 ### API Connection Errors

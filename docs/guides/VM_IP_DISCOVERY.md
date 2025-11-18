@@ -9,6 +9,7 @@ This guide explains how to discover VM IP addresses using the TrueNAS Terraform 
 **Solution**: Two complementary methods:
 1. **MAC Address Export** - Works for ALL VMs (including Talos)
 2. **Guest Agent Query** - Works for VMs with guest agent installed (Ubuntu, Debian, etc.)
+3. **Cloud-Init Static IP** - Proactive configuration (Best for automation)
 
 ---
 
@@ -176,6 +177,66 @@ The `truenas_vm_guest_info` data source supports the following authentication an
 
 ---
 
+## Method 3: Cloud-Init Static IP
+
+### Overview
+
+Instead of discovering the IP after the VM boots, you can use Cloud-Init to assign a static IP address during provisioning. This eliminates the need for discovery entirely.
+
+### Quick Start
+
+```hcl
+resource "truenas_vm" "static_vm" {
+  name   = "ubuntu-static"
+  vcpus  = 2
+  memory = 4096
+  
+  cloud_init {
+    # Network configuration for static IP
+    network_config = <<EOF
+version: 2
+ethernets:
+  eth0:
+    dhcp4: no
+    addresses: [192.168.1.150/24]
+    gateway4: 192.168.1.1
+    nameservers:
+      addresses: [8.8.8.8, 1.1.1.1]
+EOF
+
+    # User configuration
+    user_data = <<EOF
+#cloud-config
+hostname: ubuntu-static
+users:
+  - name: ubuntu
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    ssh_authorized_keys:
+      - ssh-rsa AAAAB3...
+EOF
+  }
+}
+
+output "vm_ip" {
+  value = "192.168.1.150"
+}
+```
+
+### Pros & Cons
+
+✅ **Pros:**
+- No discovery required - you know the IP in advance
+- Immediate access after boot
+- Perfect for automation and CI/CD pipelines
+- Works with any Cloud-Init enabled image
+
+❌ **Cons:**
+- Requires Cloud-Init enabled OS image
+- Requires managing IP allocation (avoiding conflicts)
+- Requires `network_config` support in the OS (Netplan/NetworkManager)
+
+---
+
 ## Use Case: Talos Kubernetes Cluster
 
 ### Problem
@@ -286,17 +347,17 @@ machine:
 
 ## Comparison Table
 
-| Feature | MAC Address Export | Guest Agent Query |
-|---------|-------------------|-------------------|
-| **Works for Talos** | ✅ Yes | ❌ No |
-| **Works for Ubuntu** | ✅ Yes | ✅ Yes |
-| **Requires SSH** | ❌ No | ✅ Yes |
-| **Requires Guest Agent** | ❌ No | ✅ Yes |
-| **Automatic IP Discovery** | ❌ No | ✅ Yes |
-| **Gets Hostname** | ❌ No | ✅ Yes |
-| **Gets OS Info** | ❌ No | ✅ Yes |
-| **Setup Complexity** | Low | Medium |
-| **Reliability** | High | Medium |
+| Feature | MAC Address Export | Guest Agent Query | Cloud-Init Static IP |
+|---------|-------------------|-------------------|----------------------|
+| **Works for Talos** | ✅ Yes | ❌ No | ❌ No (Uses machine config) |
+| **Works for Ubuntu** | ✅ Yes | ✅ Yes | ✅ Yes |
+| **Requires SSH** | ❌ No | ✅ Yes | ❌ No |
+| **Requires Guest Agent** | ❌ No | ✅ Yes | ❌ No |
+| **Automatic IP Discovery** | ❌ No | ✅ Yes | ✅ (Pre-defined) |
+| **Gets Hostname** | ❌ No | ✅ Yes | ✅ (Pre-defined) |
+| **Gets OS Info** | ❌ No | ✅ Yes | ❌ No |
+| **Setup Complexity** | Low | Medium | Medium |
+| **Reliability** | High | Medium | High |
 
 ---
 
@@ -435,9 +496,9 @@ See `examples/vm-ip-discovery/` for complete examples including:
 
 ## Recommendation
 
-**For Talos**: Use **MAC Address Export** + DHCP lookup  
-**For Ubuntu/Debian/etc**: Use **Guest Agent Query** for automatic discovery  
-**For Mixed Environment**: Use both methods as shown in the examples
+**For Talos**: Use **MAC Address Export** + DHCP lookup
+**For Ubuntu/Debian/etc**: Use **Cloud-Init Static IP** for deterministic deployments, or **Guest Agent Query** for DHCP environments
+**For Mixed Environment**: Use the method that best fits your network architecture
 
 ---
 

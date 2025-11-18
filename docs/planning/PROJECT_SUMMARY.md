@@ -130,6 +130,7 @@ terraform-provider-truenas/
    - Configure CPU, memory, cores, threads
    - Set bootloader (UEFI, GRUB)
    - Enable autostart and memory ballooning
+   - **Cloud-Init support** (user-data, meta-data, network-config)
    - Import existing VMs
 
 #### iSCSI (3)
@@ -253,7 +254,7 @@ make build
 make install
 ```
 
-This installs to: `~/.terraform.d/plugins/terraform-providers/truenas/1.0.0/linux_amd64/`
+This installs to: `~/.terraform.d/plugins/terraform-providers/truenas/0.2.23/linux_amd64/`
 
 ### Testing
 ```bash
@@ -267,7 +268,7 @@ terraform {
   required_providers {
     truenas = {
       source  = "terraform-providers/truenas"
-      version = "1.0.0"
+      version = "0.2.23"
     }
   }
 }

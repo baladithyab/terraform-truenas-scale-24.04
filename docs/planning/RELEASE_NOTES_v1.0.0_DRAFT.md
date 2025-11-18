@@ -50,6 +50,7 @@ This is the initial release of the TrueNAS Scale 24.04 Terraform Provider. This 
   - CPU mode and model selection
   - Autostart configuration
   - Memory ballooning support
+  - **Cloud-Init support** (user-data, meta-data, network-config)
   - Import existing VMs
 
 ### Data Sources

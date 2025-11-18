@@ -42,7 +42,7 @@ terraform {
   required_providers {
     truenas = {
       source  = "terraform-providers/truenas"
-      version = "1.0.0"
+      version = "0.2.23"
     }
   }
 }
@@ -238,7 +238,58 @@ Clean up:
 terraform destroy
 ```
 
-## Test 6: Import Existing Resources
+## Test 6: VM with Cloud-Init
+
+Create `test-vm-cloud-init.tf`:
+
+```hcl
+resource "truenas_vm" "cloud_init_test" {
+  name        = "cloud-init-test"
+  description = "Test VM with Cloud-Init"
+  vcpus       = 2
+  memory      = 4096
+  autostart   = true
+
+  cloud_init {
+    user_data = <<EOF
+#cloud-config
+hostname: cloud-init-test
+users:
+  - name: testuser
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    shell: /bin/bash
+EOF
+    
+    meta_data = <<EOF
+instance-id: cloud-init-test-001
+local-hostname: cloud-init-test
+EOF
+  }
+}
+
+output "vm_id" {
+  value = truenas_vm.cloud_init_test.id
+}
+```
+
+Run:
+
+```bash
+terraform apply
+```
+
+Verify in TrueNAS UI:
+1. Navigate to Virtualization
+2. Expand "cloud-init-test" VM
+3. Verify a CD-ROM device is attached with an ISO path like `/mnt/pool/isos/cloud-init-test.iso`
+
+Clean up:
+
+```bash
+terraform destroy
+```
+
+## Test 7: Import Existing Resources
 
 ### Import a Dataset
 
@@ -277,7 +328,7 @@ terraform import truenas_nfs_share.imported 1  # Use actual share ID
 terraform plan
 ```
 
-## Test 7: Complete Infrastructure
+## Test 8: Complete Infrastructure
 
 Use the complete example:
 
@@ -302,7 +353,7 @@ Verify all resources in TrueNAS UI, then:
 terraform destroy
 ```
 
-## Test 8: State Management
+## Test 9: State Management
 
 Test state operations:
 
@@ -321,7 +372,7 @@ terraform state mv truenas_dataset.test truenas_dataset.renamed
 terraform state rm truenas_dataset.renamed
 ```
 
-## Test 9: Update Operations
+## Test 10: Update Operations
 
 Create a dataset:
 
@@ -353,7 +404,7 @@ terraform apply
 
 Verify changes in TrueNAS UI.
 
-## Test 10: Error Handling
+## Test 11: Error Handling
 
 Test various error conditions:
 
@@ -386,7 +437,7 @@ terraform apply  # Should fail with appropriate error
 
 ```bash
 # Verify installation
-ls -la ~/.terraform.d/plugins/terraform-providers/truenas/1.0.0/linux_amd64/
+ls -la ~/.terraform.d/plugins/terraform-providers/truenas/0.2.23/linux_amd64/
 
 # Reinstall
 cd /mnt/e/CS/terraform-provider-truenas
