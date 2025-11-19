@@ -423,7 +423,7 @@ func (r *VMResource) Schema(ctx context.Context, req resource.SchemaRequest, res
 						},
 					},
 					"device_order": schema.Int64Attribute{
-						MarkdownDescription: "Boot order for the cloud-init ISO device. Defaults to 10000 to ensure it boots after regular devices",
+						MarkdownDescription: "Boot order for the cloud-init ISO device. If not specified, automatically calculates as max(existing_device_orders) + 1, or 1000 if no devices exist",
 						Optional:            true,
 						Computed:            true,
 						PlanModifiers: []planmodifier.Int64{
@@ -780,6 +780,35 @@ func (r *VMResource) getFirstPoolName() (string, error) {
 	return "", fmt.Errorf("pool name not found")
 }
 
+// getMaxDeviceOrder retrieves the maximum device order from existing VM devices
+func (r *VMResource) getMaxDeviceOrder(vmID string) (int64, error) {
+	endpoint := fmt.Sprintf("/vm/id/%s", vmID)
+	respBody, err := r.client.Get(endpoint)
+	if err != nil {
+		return 0, err
+	}
+
+	var result map[string]interface{}
+	if err := json.Unmarshal(respBody, &result); err != nil {
+		return 0, err
+	}
+
+	var maxOrder int64 = 0
+	if devices, ok := result["devices"].([]interface{}); ok {
+		for _, device := range devices {
+			if deviceMap, ok := device.(map[string]interface{}); ok {
+				if order, ok := deviceMap["order"].(float64); ok {
+					if int64(order) > maxOrder {
+						maxOrder = int64(order)
+					}
+				}
+			}
+		}
+	}
+
+	return maxOrder, nil
+}
+
 func (r *VMResource) handleCloudInitCreate(ctx context.Context, data *VMResourceModel) error {
 	userData := data.CloudInit.UserData.ValueString()
 	metaData := data.CloudInit.MetaData.ValueString()
@@ -814,11 +843,24 @@ func (r *VMResource) handleCloudInitCreate(ctx context.Context, data *VMResource
 	}
 
 	// Determine device order for cloud-init ISO
-	deviceOrder := int64(10000) // Default order
+	var deviceOrder int64
 	if !data.CloudInit.DeviceOrder.IsNull() {
+		// Use user-specified order if provided
 		deviceOrder = data.CloudInit.DeviceOrder.ValueInt64()
 	} else {
-		// Set computed value to default
+		// Auto-calculate next available order based on existing devices
+		maxOrder, err := r.getMaxDeviceOrder(data.ID.ValueString())
+		if err != nil {
+			// If we can't get existing devices, default to 1000
+			deviceOrder = 1000
+		} else if maxOrder > 0 {
+			// Use max order + 1
+			deviceOrder = maxOrder + 1
+		} else {
+			// No devices exist, start at 1000
+			deviceOrder = 1000
+		}
+		// Set computed value
 		data.CloudInit.DeviceOrder = types.Int64Value(deviceOrder)
 	}
 
