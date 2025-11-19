@@ -134,6 +134,10 @@ EOF
 instance-id: ubuntu-cloud-001
 local-hostname: ubuntu-server
 EOF
+    
+    # Optional: Customize boot order (default is 10000)
+    # Lower numbers boot first
+    device_order = 5000
   }
 }
 ```
@@ -182,6 +186,7 @@ The `cloud_init` block supports:
 - `network_config` (String) Cloud-init network-config configuration (YAML format) for static IP assignment.
 - `filename` (String, Optional) Name of the generated ISO file. Defaults to `cloud-init-{vm_name}.iso`.
 - `upload_path` (String, Optional) Directory to upload the ISO to. Defaults to `/mnt/{first_pool}/isos/`.
+- `device_order` (Number, Optional) Boot order for the cloud-init ISO device. Defaults to `10000` to ensure it boots after regular devices. Lower values boot first.
 
 #### Static IP Assignment Example
 

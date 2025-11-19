@@ -62,10 +62,11 @@ type VMResourceModel struct {
 }
 
 type CloudInitModel struct {
-	UserData   types.String `tfsdk:"user_data"`
-	MetaData   types.String `tfsdk:"meta_data"`
-	Filename   types.String `tfsdk:"filename"`
-	UploadPath types.String `tfsdk:"upload_path"`
+	UserData    types.String `tfsdk:"user_data"`
+	MetaData    types.String `tfsdk:"meta_data"`
+	Filename    types.String `tfsdk:"filename"`
+	UploadPath  types.String `tfsdk:"upload_path"`
+	DeviceOrder types.Int64  `tfsdk:"device_order"`
 }
 
 type NICDeviceModel struct {
@@ -419,6 +420,14 @@ func (r *VMResource) Schema(ctx context.Context, req resource.SchemaRequest, res
 						Computed:            true,
 						PlanModifiers: []planmodifier.String{
 							stringplanmodifier.UseStateForUnknown(),
+						},
+					},
+					"device_order": schema.Int64Attribute{
+						MarkdownDescription: "Boot order for the cloud-init ISO device. Defaults to 10000 to ensure it boots after regular devices",
+						Optional:            true,
+						Computed:            true,
+						PlanModifiers: []planmodifier.Int64{
+							int64planmodifier.UseStateForUnknown(),
 						},
 					},
 				},
@@ -804,11 +813,20 @@ func (r *VMResource) handleCloudInitCreate(ctx context.Context, data *VMResource
 		return err
 	}
 
+	// Determine device order for cloud-init ISO
+	deviceOrder := int64(10000) // Default order
+	if !data.CloudInit.DeviceOrder.IsNull() {
+		deviceOrder = data.CloudInit.DeviceOrder.ValueInt64()
+	} else {
+		// Set computed value to default
+		data.CloudInit.DeviceOrder = types.Int64Value(deviceOrder)
+	}
+
 	// Add CDROM device
 	deviceReq := map[string]interface{}{
 		"vm":    data.ID.ValueString(),
 		"dtype": "CDROM",
-		"order": 10000,
+		"order": deviceOrder,
 		"attributes": map[string]interface{}{
 			"path": fullPath,
 		},
@@ -1477,6 +1495,14 @@ func (r *VMResource) createDevices(ctx context.Context, data *VMResourceModel, d
 					"nic_attach": nic.NICAttach.ValueString(),
 				},
 			}
+			
+			// Log diagnostic information for debugging order issues
+			diags.AddWarning(
+				"Device Creation Debug",
+				fmt.Sprintf("Creating NIC device with order=%d (user specified: %v, auto-increment base: %d)",
+					order,
+					!nic.Order.IsNull() && nic.Order.ValueInt64() > 0,
+					deviceOrder))
 
 			// Add optional NIC attributes
 			if !nic.Type.IsNull() && nic.Type.ValueString() != "" {
@@ -1528,6 +1554,14 @@ func (r *VMResource) createDevices(ctx context.Context, data *VMResourceModel, d
 					"path": disk.Path.ValueString(),
 				},
 			}
+			
+			// Log diagnostic information for debugging order issues
+			diags.AddWarning(
+				"Device Creation Debug",
+				fmt.Sprintf("Creating DISK device with order=%d (user specified: %v, auto-increment base: %d)",
+					order,
+					!disk.Order.IsNull() && disk.Order.ValueInt64() > 0,
+					deviceOrder))
 
 			// Add optional disk attributes
 			if !disk.Type.IsNull() && disk.Type.ValueString() != "" {
@@ -1581,6 +1615,14 @@ func (r *VMResource) createDevices(ctx context.Context, data *VMResourceModel, d
 					"path": cdrom.Path.ValueString(),
 				},
 			}
+			
+			// Log diagnostic information for debugging order issues
+			diags.AddWarning(
+				"Device Creation Debug",
+				fmt.Sprintf("Creating CDROM device with order=%d (user specified: %v, auto-increment base: %d)",
+					order,
+					!cdrom.Order.IsNull() && cdrom.Order.ValueInt64() > 0,
+					deviceOrder))
 
 			_, err := r.client.Post("/vm/device", deviceReq)
 			if err != nil {
@@ -1641,6 +1683,14 @@ func (r *VMResource) createDevices(ctx context.Context, data *VMResourceModel, d
 				"order":      order,
 				"attributes": attributes,
 			}
+			
+			// Log diagnostic information for debugging order issues
+			diags.AddWarning(
+				"Device Creation Debug",
+				fmt.Sprintf("Creating DISPLAY device with order=%d (user specified: %v, auto-increment base: %d)",
+					order,
+					!display.Order.IsNull() && display.Order.ValueInt64() > 0,
+					deviceOrder))
 
 			_, err := r.client.Post("/vm/device", deviceReq)
 			if err != nil {
@@ -1675,6 +1725,14 @@ func (r *VMResource) createDevices(ctx context.Context, data *VMResourceModel, d
 					"pptdev": pci.PPTDev.ValueString(),
 				},
 			}
+			
+			// Log diagnostic information for debugging order issues
+			diags.AddWarning(
+				"Device Creation Debug",
+				fmt.Sprintf("Creating PCI device with order=%d (user specified: %v, auto-increment base: %d)",
+					order,
+					!pci.Order.IsNull() && pci.Order.ValueInt64() > 0,
+					deviceOrder))
 
 			_, err := r.client.Post("/vm/device", deviceReq)
 			if err != nil {
