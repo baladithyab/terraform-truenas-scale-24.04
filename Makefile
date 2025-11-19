@@ -1,10 +1,10 @@
 .PHONY: build install test clean fmt lint docs
 
-HOSTNAME=terraform-providers
-NAMESPACE=truenas
+HOSTNAME=registry.terraform.io
+NAMESPACE=baladithyab
 NAME=truenas
 BINARY=terraform-provider-${NAME}
-VERSION=0.2.17
+VERSION=0.2.23
 OS_ARCH=linux_amd64
 
 default: build
